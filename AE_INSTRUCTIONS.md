@@ -5,15 +5,35 @@ Here are the detailed instructions to perform the same experiments in our paper.
 ## Artifact claims
 
 We claim that the results might differ from those in our paper due to various factors (e.g., cluster sizes, hardware specifications, OS, software packages, etc.). 
-**The hardware in the provided testbeds is not identical to that used for the original paper; for example, we replaced some broken nodes and faulty SSDs with newer models.** These changes may cause performance to vary from the results originally published. Nevertheless, we expect HATS will continue to outperform its baselines.
+**The hardware in the provided testbeds is not identical to that used for the original paper; for example, we replaced some broken nodes and faulty SSDs with healthy ones, so the provided cluster is heterogeneous.** These changes may cause performance to vary from the results originally published. Nevertheless, we expect HATS will continue to outperform its baselines.
 
 
 ## Testbed setup
 
-> **For FAST'26 AE reviewers**, please use the provided testbeds to reproduce the evaluations directly. These testbeds come equipped with pre-loaded datasets and pre-deployed software, which will significantly reduce setup time and help avoid potential configuration issues. **Please refer to our Artifact Submission on the HotCRP website for instructions on how to log into the testbeds**.
+> **For FAST'26 AE reviewers**, please use the provided testbeds to reproduce the evaluations directly. These testbeds come equipped with **pre-loaded datasets and pre-deployed software**, which will significantly reduce setup time and help avoid potential configuration issues. **Please contact us via HotCRP website for instructions on how to log into the testbeds**.
 
 If you want to configure the testbed from scratch, please refer to [./README.md](./README.md).
 
+### Load the datasets (Optional)
+
+If you really want to load the datasets by yourself, you can use the following commands to load the YCSB and Facebook datasets.
+
+```shell
+cd scripts/ae
+bash load_ycsb.sh # for ycsb benchmark
+bash load_fb.sh # for facebook workload
+```
+Please modify the script if you want to change the dataset size or other parameters. The default settings for the YCSB benchmarks contain 100M KV pairs for YCSB workloads, 3-way replication, key size of 24 bytes, and value size of 1000 bytes. The main parameters are defined in the above scripts, which contains:
+```shell
+SCHEMES=("mlsm" "depart-5.0") # The schemes to be tested. Note that mLSM, HATS, and C3 share the same underlying data loading process, so we only need to load the data once for them.
+CLUSTER_NAMES=("1x") # The cluster names defined in settings.sh, it contains the information of the nodes in the cluster.
+REPLICAS=(3) # Number of replicas
+KV_NUMBER=100000000 # number of KV pairs
+FIELD_LENGTH=(512 1000 2048) # value size in bytes
+KEY_LENGTH=24 # key size in bytes
+REBUILD_SERVER="true" # whether to rebuild the server before loading data
+WAIT_TIME=3600 # wait time (in seconds) after loading data to make sure the LSM-tree are fully compacted
+```
 
 ## Evaluations
 
@@ -21,7 +41,24 @@ This section describes how to reproduce the evaluations in our paper. To simplif
 > **The scripts will take ~45 days to finish all the experiments. We suggest running the scripts of Exp#0 first, which can reproduce the main results of our paper while including most of the functionality verification.**
 
 Note on the experiment scripts:
-> These evaluation scripts require a long time to run. To avoid the interruption of the experiments, we suggest running the scripts in the background with `tmux`, `nohup`, `screen`, etc. In addition, please make sure that all scripts have been given execution permissions.
+- **How to avoid interruptions?** These evaluation scripts require a long time to run. To avoid the interruption of the experiments, we suggest running the scripts in the background with `tmux`, `nohup`, `screen`, etc.
+    - We suggest using `tmux` to run the scripts. You can create a new tmux session via `tmux new -s control`, run the script inside the tmux session, and then detach the session via `Ctrl+b d`. You can re-attach the session later via `tmux attach -t control`.
+- **How to modify the experiment settings?** You can modify the experiment settings by changing the parameters in the corresponding script files. The configurable parameters include:
+    - `REBUILD_SERVER`: Whether to rebuild the server before running the experiment.
+    - `SCHEMES`: The schemes to be tested. You can add or remove the schemes in the list.
+    - `CLUSTER_NAMES`: The cluster names defined in `settings.sh`, which contains the information of the nodes in the cluster.
+    - `REPLICAS`: Number of replicas.
+    - `KV_NUMBER`: Number of KV pairs.
+    - `KEY_LENGTH`: Key size in bytes.
+    - `OPERATION_NUMBER`: Number of operations to be issued in each workload.
+    - `ROUNDS`: Number of rounds to run for each workload. The default value is 1. If the value is larger than 1, the script will run multiple rounds and report the average results.
+    - `CONSISTENCY_LEVEL`: Read consistency level. (Exp#9)
+    - `REQUEST_DISTRIBUTIONS`: The key distribution to be used in the experiment. (Exp#10)
+    - `FIELD_LENGTH`: Value size in bytes. (Exp#11)
+    - `THREAD_NUMBER`: Number of client threads in each client machine to be used in the experiment. (Exp#12)
+
+- **Where are the experiment results stored?** The experiment results will be stored in the `~/Results/` directory on the control node. Each experiment will be logged in a separate file named `exp#_summary.txt`, where `#` is the experiment number.
+
 
 ### Quick verification (Exp#0: quick verification)
 
@@ -34,7 +71,8 @@ This experiment will provide the throughput and latency results of HATS and the 
 Your can run this quick verification experiment via the following command:
 
 ```shell
-bash scripts/ae/run_exp_0.sh
+cd scripts/ae
+bash run_exp_0.sh
 ```
 
 The results will be output in the order shown below:
@@ -91,28 +129,39 @@ hats         workloadc    10221              5043               790             
 
 *Running:*
 ```shell
-bash scripts/ae/run_exp_1.sh
+cd scripts/ae
+bash run_exp_1.sh
 ```
 
 ### Macrobenchmarks and system-level analysis (Exp#2-8 in our paper)
-#### Exp#2,4,6,7: YCSB synthetic workloads and system-level analysis (3 human-minutes + 10 compute-hours / per-round)
+#### Exp#2,4,6,7: YCSB synthetic workloads and system-level analysis (1 human-minutes + 10 compute-hours / per-round)
 **NOTE: This script is the same as Exp#0, so you don't need to run this one if you tested Exp#0.**
 
 *Running:*
 ```shell
-bash scripts/ae/run_exp_2_4_6_7.sh
+cd scripts/ae
+bash run_exp_2_4_6_7.sh
 ```
 
 #### Exp#3: Facebook workload (1 human-minute + ~4 compute-hours / per-round)
 *Running:*
 ```shell
-bash scripts/ae/run_exp_3.sh
+cd scripts/ae
+bash run_exp_3.sh
 ```
 
 #### Exp#5: Latency distribution at the highest-latency node (1 human-minute + ~4 compute-hours / per-round)
 *Running:*
 ```shell
-bash scripts/ae/run_exp_5.sh
+cd scripts/ae
+bash run_exp_5.sh
+``` 
+
+#### Exp#8: Scalability (1 human-minute + ~4 compute-hours / per-round)
+*Running:*
+```shell
+cd scripts/ae
+bash run_exp_8.sh
 ``` 
 
 ### Parameter Analysis (Exp#9-12 in our paper)
@@ -120,23 +169,27 @@ bash scripts/ae/run_exp_5.sh
 #### Exp#9: Different read consistency levels (1 human-minute + ~4 compute-hours / per-round)
 *Running:*
 ```shell
-bash scripts/ae/run_exp_9.sh
+cd scripts/ae
+bash run_exp_9.sh
 ```
 
 #### Exp#10: Impact of key distribution (1 human-minute + ~4 compute-hours / per-round)
 *Running:*
 ```shell
-bash scripts/ae/run_exp_10.sh
+cd scripts/ae
+bash run_exp_10.sh
 ```
 
 #### Exp#11: Impact of value size (1 human-minute + ~4 compute-hours / per-round)
 *Running:*
 ```shell
-bash scripts/ae/run_exp_11.sh
+cd scripts/ae
+bash run_exp_11.sh
 ```
 
 #### Exp#12: Impact of system saturation levels (1 human-minute + ~4 compute-hours / per-round)
 *Running:*
 ```shell
-bash scripts/ae/run_exp_12.sh
+cd scripts/ae
+bash run_exp_12.sh
 ```

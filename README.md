@@ -20,7 +20,11 @@ For FAST'26 AE reviewers, please refer to the [Artifact Evaluation Instructions]
 
 ### Testbed
 
-As a distributed KV store, HATS requires a cluster of machines to run. We recommend using multiple machines for both server nodes and client nodes to fully evaluate the performance of HATS. For example, we a cluster of 12 machines, where 10 machines are used as storage nodes and 2 machines are used as client nodes in the paper.
+Launching HATS requires a distributed testbed with multiple machines.
+For example, we use 12 machines in the paper, where 10 machines are used as storage nodes and 2 machines are used as client nodes to avoid single-client bottlenecks.
+You are also required to set up a control node if you want to use our provided Ansible scripts to automate the testbed setup and experiment execution.
+These machines need to be connected via a 10Gbps network for communication.
+For each machine, we recommend at least a quad-core CPU, 16GB RAM, and a 128 GiB SATA SSDs and above.
 
 ### Dependencies
 - For Java project build: openjdk-17-jdk, openjdk-17-jre, ant, ant-optional Maven.
@@ -46,11 +50,7 @@ vim ./scripts/conf/settings.xml # Modify the proxy settings in the file.
 cp ./scripts/conf/settings.xml ~/.m2/
 ```
 
-
-## Build 
-
-
-### Step 1: HATS's client
+### Build
 
 First, we build the HATS's client:
 
@@ -60,11 +60,7 @@ cd clients/
 mvn -pl cassandra -am clean package -U -Dcheckstyle.skip
 ```
 
-
-### Step 2: HATS's server
-
 Then, we can build the HATS's server:
-
 ```shell
 # Build with java 17
 # For those who want to test the baseline, please go to servers/mlsm, servers/c3, or servers/depart-5.0
@@ -73,7 +69,6 @@ mkdir build lib
 ant realclean && ant
 ```
 
-## Configuration
 
 ### Cluster setup
 
@@ -104,7 +99,11 @@ EOT
 ssh-copy-id node${i}
 ```
 
-### Configuring HATS
+## Configuring HATS
+
+> If you configure the testbed with above steps successfully, you can skip the following sections and use our provided scripts to run the experiments directly. But you need to configure `scripts/settings.sh` correctly according to your cluster settings before running the scripts.
+
+
 
 The HATS prototype requires to configure the cluster information before running. We provide an example configuration file `server/hats/conf/cassandra.yaml`. Please modify the file according to your cluster settings and the instructions shown below (lines 11-34).
 
