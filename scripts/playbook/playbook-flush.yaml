@@ -1,0 +1,19 @@
+---
+- name: Force flush and compaction
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Force flush
+      shell: |
+        . /etc/profile && cd PATH_TO_SERVER && bin/nodetool NODETOOL_OPTION flush
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: Wait until compaction is done
+      pause:
+        seconds: 21600
+
+

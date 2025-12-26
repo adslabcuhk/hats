@@ -1,0 +1,166 @@
+---
+- name: Start Cassandra Seeds
+  hosts: cassandra_seeds
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Execute script start-server.sh
+    shell: |
+      . /etc/profile &&
+      export code_base="/mnt/ssd/hats/servers/mlsm" &&
+      export branch_name="main" &&
+      export rebuild="" &&
+      export memtable_heap_space="2048MiB" &&
+      export internode_max_message_size="32MiB" &&
+      export internode_application_send_queue_capacity="256MiB" &&
+      export internode_application_send_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_send_queue_reserve_global_capacity="2048MiB" &&
+      export internode_application_receive_queue_capacity="256MiB" &&
+      export internode_application_receive_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_receive_queue_reserve_global_capacity="2048MiB" &&
+      bash /mnt/ssd/hats/scripts/run/start-server.sh
+
+    register: command_result
+    ignore_errors: True
+#
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+  - name: Wait until all nodes are ready
+    pause:
+      seconds: 120
+
+
+- name: Start Cassandra Data Nodes
+  hosts: cassandra_data_nodes
+  become: true
+  become_user: ymren
+  serial: 1
+  tasks:
+  - name: Execute script start-server.sh
+    shell: |
+      . /etc/profile &&
+      export code_base="/mnt/ssd/hats/servers/mlsm" &&
+      export branch_name="main" &&
+      export rebuild="" &&
+      export memtable_heap_space="2048MiB" &&
+      export internode_max_message_size="32MiB" &&
+      export internode_application_send_queue_capacity="256MiB" &&
+      export internode_application_send_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_send_queue_reserve_global_capacity="2048MiB" &&
+      export internode_application_receive_queue_capacity="256MiB" &&
+      export internode_application_receive_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_receive_queue_reserve_global_capacity="2048MiB" &&
+      bash /mnt/ssd/hats/scripts/run/start-server.sh
+
+    register: command_result
+    ignore_errors: True
+#
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+  - name: Wait until all nodes are ready
+    pause:
+      seconds: 90
+
+- name: Setup log levels
+  hosts:  cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Setup log levels
+    shell: |
+      . /etc/profile && cd /mnt/ssd/hats/servers/mlsm && bin/nodetool  setlogginglevel org.apache.cassandra error && bin/nodetool  setlogginglevel ROOT error
+    register: command_result
+    ignore_errors: true
+
+
+- name: Prepare keyspace and tables for evaluation
+  hosts: cassandra_clients
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Execute script start-client.sh
+    shell: bash /mnt/ssd/hats/scripts/run/start-client.sh {{ coordinator }} {{ sstable_size_in_mb }} {{ fanout_size }} {{ file_dir }} {{ replication_factor }} {{ mode }} {{ compaction_strategy }}
+    vars:
+      coordinator: "192.168.10.31"
+      sstable_size_in_mb: 160
+      fanout_size: 10
+      file_dir: "/mnt/ssd/hats/servers/mlsm"
+      replication_factor: 3
+      mode: mlsm
+      compaction_strategy: LCS
+    register: command_result
+    ignore_errors: True
+
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+
+
+
+- name: Load data
+  hosts: cassandra_clients
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Execute script load.sh
+    shell: | 
+        . /etc/profile && 
+        export requestDistribution="uniform" &&
+        bash /mnt/ssd/hats/scripts/run/load.sh {{ coordinator }} {{ record_count }} {{ key_length }} {{ filed_length }} {{ threads }} {{ file_dir }} {{ workload }} {{ expName }} {{replication_factor}} {{ mode }}
+    vars:
+      coordinator: "192.168.10.23,192.168.10.25,192.168.10.27,192.168.10.29,192.168.10.30,192.168.10.31,192.168.10.32,192.168.10.47,192.168.10.49,192.168.10.50"
+      record_count: 100000000
+      key_length: 24
+      filed_length: 1000
+      threads: 10
+      file_dir: "/mnt/ssd/hats/client"
+      workload: workloads/workload_template
+      expName: -mlsm-Load
+      replication_factor: 3
+      mode: mlsm
+    register: command_result
+    ignore_errors: True
+
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+
+  - name: Wait until insertion is done
+    pause:
+      seconds: 5
+
+
+- name: Get write stall metrics
+  hosts:  cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Get write stall metrics
+    shell: |
+      . /etc/profile && cd /mnt/ssd/hats/servers/mlsm && bin/nodetool  writestall
+    register: command_result
+    ignore_errors: true
+
+
+- name: Backup Logs
+  hosts: cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+    - name: copy logs
+      shell: bash /mnt/ssd/hats/scripts/run/copyLogs.sh {{ record_count }} {{ operation_count }} {{ threads }} {{ workload }} {{ expName }} {{ keyspace }} {{ resultDir }}
+      vars:
+        record_count: 100000000
+        operation_count: 10000000
+        threads: 10
+        workload: workloads/workload_template
+        expName: -mlsm-Load
+        keyspace: "ycsb"
+        resultDir: "/mnt/ssd/hats/servers/mlsm/metrics"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"

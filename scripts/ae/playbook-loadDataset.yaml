@@ -1,0 +1,22 @@
+---
+- name: Load the dataset from backup
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Load the dataset from backup
+      shell: |
+            . /etc/profile &&
+            cd /mnt/ssd/hats/servers/hats &&
+            rm -rf data/ &&
+            cp -r /home/ymren/backups/mlsm/LoadDB-kvNumber-100000000-KeySize-24-ValueSize-1000-RF-3-SSTableSize-160-CompactionStrategy-LCS/data data/
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+
+
+
+
+

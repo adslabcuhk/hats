@@ -1,0 +1,13 @@
+---
+- name: Rebuild the cluster
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Rebuild the cluster
+      shell: . /etc/profile && cd /mnt/ssd/hats/servers/mlsm && git checkout main && git pull origin main && ant clean && ant 
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"

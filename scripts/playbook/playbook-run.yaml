@@ -1,0 +1,323 @@
+---
+- name: Start Memory Monitor
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  gather_facts: false
+  tasks:
+    - name: Memory Monitor
+      shell: |
+        . /etc/profile &&
+        nohup bash PATH_TO_SCRIPTS/status/statsRAM.sh {{ expName }} {{ stage }} {{ resultDir }} &
+      vars:
+        expName: "SampleExpName"
+        stage: "Running"
+        resultDir: "PATH_TO_RESULT_DIR"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+- name: Monitor before benchmark
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Monitor
+      shell: |
+        . /etc/profile && bash PATH_TO_SCRIPTS/status/statsDB_CPU_DISK_NET.sh {{ expName }} {{workload}} {{ stage }} {{ resultDir }} {{ codeBase }} {{ diskDevice }} {{ networkDevice }} {{ scheme }}
+      vars:
+        expName: "SampleExpName"
+        workload: "workload_template"
+        stage: "Before-run"
+        resultDir: "PATH_TO_RESULT_DIR"
+        codeBase: "PATH_TO_SERVER"
+        diskDevice: "DISK_DEVICE"
+        networkDevice: "NETWORK_DEVICE"
+        scheme: "normal"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+
+
+- name: Enable auto compaction
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Enable auto compaction
+      shell: |
+        . /etc/profile && [ "ENABLE_AUTO_COMPACTION" = "true" ] && cd PATH_TO_SERVER && bin/nodetool NODETOOL_OPTION enableautocompaction  ycsb ENABL_COMPACTION_CFS
+      register: command_result
+      ignore_errors: true
+
+
+# - name: Disable auto compaction
+#   hosts: cassandra_servers
+#   become: yes
+#   become_user: ymren
+#   tasks:
+#     - name: Disable auto compaction
+#       shell: |
+#         . /etc/profile && [ "WORKLOAD" = "motivation" ] && cd PATH_TO_SERVER && bin/nodetool disableautocompaction ycsb ENABL_COMPACTION_CFS
+#       register: command_result
+#       ignore_errors: true
+
+# - name: Disable auto compaction
+#   hosts: cassandra_servers
+#   become: yes
+#   become_user: ymren
+#   tasks:
+#     - name: Disable auto compaction
+#       shell: |
+#         . /etc/profile && cd PATH_TO_SERVER && bin/nodetool disableautocompaction ycsb ENABL_COMPACTION_CFS
+#       register: command_result
+#       ignore_errors: true
+
+- name: Setup log levels
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Setup log levels
+      shell: |
+        . /etc/profile && cd PATH_TO_SERVER && bin/nodetool NODETOOL_OPTION setlogginglevel org.apache.cassandra LOG_LEVEL && bin/nodetool NODETOOL_OPTION setlogginglevel ROOT error
+      register: command_result
+      ignore_errors: true
+
+- name: Page cache management
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Clear page cache
+      shell: . /etc/profile && echo "SUDO_PASSWD" | sudo -S sh -c "echo 1 > /proc/sys/vm/drop_caches"
+      register: command_result
+      ignore_errors: true
+    - name: Wait before the benchmark
+      pause:
+        seconds: 1
+
+- name: Start probe
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Start probe
+      shell: |
+        . /etc/profile && cd PATH_TO_SERVER && bin/nodetool startprobe
+      register: command_result
+      ignore_errors: true
+      when: "ENABLE_START_PROBE" == "true"
+
+- name: Run benchmark and enable compaction
+  hosts: cassandra_clients
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Execute runDB.sh asynchronously
+      shell: bash PATH_TO_SCRIPTS/run/runDB.sh {{ recordNumber }} {{ operationNumber }} {{ keyLength }} {{ fieldLength }} {{ threads }} {{ workload }} {{ requestDistribution }} {{ PathToClient }} {{ coordinator }} {{ scheme }} {{ enableHats }} {{ hostName }} {{ consistencyLevel }}
+      vars:
+        coordinator: "COORDINATORS"
+        recordNumber: 10000000
+        operationNumber: 10000000
+        keyLength: 24
+        fieldLength: 1000
+        threads: 64
+        workload: "workload_template"
+        requestDistribution: "uniform"
+        PathToClient: "PATH_TO_CLIENT"
+        scheme: "normal"
+        enableHats: "ENABLE_HATS"
+        hostName: "{{ inventory_hostname }}"
+        consistencyLevel: "CONSISTENCY"
+      async: 7200
+      poll: 0      
+      register: benchmark_async_result
+
+# - name: Enable auto compaction
+#   hosts: cassandra_servers
+#   become: yes
+#   become_user: ymren
+#   tasks:
+#     - name: Wait for 10 minutes before enabling compaction
+#       pause:
+#         minutes: 10
+#     - name: Enable auto compaction
+#       shell: |
+#         . /etc/profile && cd PATH_TO_SERVER && bin/nodetool enableautocompaction ycsb ENABL_COMPACTION_CFS
+#       register: command_result
+#       ignore_errors: true
+
+
+# - name: Enable auto compaction
+#   hosts: cassandra_servers
+#   become: yes
+#   become_user: ymren
+#   tasks:
+#     - name: Wait for 10 minutes before enabling compaction
+#       pause:
+#         minutes: 10
+#     - name: Enable auto compaction
+#       shell: |
+#         . /etc/profile && [ "WORKLOAD" = "motivation" ] && cd PATH_TO_SERVER && bin/nodetool enableautocompaction ycsb ENABL_COMPACTION_CFS
+#       register: command_result
+#       ignore_errors: true
+
+
+- name: Wait for benchmark to finish
+  hosts: cassandra_clients
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Wait for benchmark to finish
+      async_status:
+        jid: "{{ benchmark_async_result.ansible_job_id }}"
+      register: benchmark_job_result
+      until: benchmark_job_result.finished
+      retries: 360  
+      delay: 10 
+
+# - name: Wait for compaction to finish
+#   hosts: cassandra_servers
+#   become: yes
+#   become_user: ymren
+#   tasks:
+#     - name: Wait for compaction to finish
+#       async_status:
+#         jid: "{{ compaction_async_result.ansible_job_id }}"
+#       register: compaction_job_result
+#       until: compaction_job_result.finished
+#       retries: 1
+#       delay: 10     
+
+# - name: Fail the play if the benchmark command or compaction did not succeed
+#   hosts: localhost
+#   tasks:
+#     - name: Fail the play if the benchmark command or compaction did not succeed
+#       fail: msg="The benchmark or compaction command failed"
+#       when: "'FAILED' in benchmark_job_result.stderr or 'FAILED' in compaction_job_result.stderr"
+
+# - name: Run benchmark
+#   hosts: cassandra_clients
+#   become: yes
+#   become_user: ymren
+#   tasks:
+#     - name: Execute runDB.sh
+#       shell: bash PATH_TO_SCRIPTS/run/runDB.sh {{ recordNumber }} {{ operationNumber }} {{ keyLength }} {{ fieldLength }} {{ threads }} {{ workload }} {{ requestDistribution }} {{ PathToClient }} {{ coordinator }} {{ scheme }} {{ enableHats }} {{ hostName }} {{ consistencyLevel }}
+#       vars:
+#         coordinator: "COORDINATORS"
+#         recordNumber: 10000000
+#         operationNumber: 10000000
+#         keyLength: 24
+#         fieldLength: 1000
+#         threads: 64
+#         workload: "workload_template"
+#         requestDistribution: "uniform"
+#         PathToClient: "PATH_TO_CLIENT"
+#         scheme: "normal"
+#         enableHats: "ENABLE_HATS"
+#         hostName: "{{ inventory_hostname }}"
+#         consistencyLevel: "CONSISTENCY"
+#       register: command_result
+#       ignore_errors: true
+#     - name: Fail the play if the previous command did not succeed
+#       fail: msg="the command failed"
+#       when: "'FAILED' in command_result.stderr"
+#     - name: Wait until benchmark is done
+#       pause:
+#         seconds: 5
+
+# - name: Get write stall metrics
+#   hosts:  cassandra_servers
+#   become: true
+#   become_user: ymren
+#   tasks:
+#   - name: Get write stall metrics
+#     shell: |
+#       . /etc/profile && cd PATH_TO_SERVER && bin/nodetool NODETOOL_OPTION writestall
+#     register: command_result
+#     ignore_errors: true
+
+- name: Get request distribution
+  hosts:  cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Get request distribution
+    shell: |
+      . /etc/profile && cd PATH_TO_SERVER && bin/nodetool NODETOOL_OPTION getbreakdown KEYSPACE > PATH_TO_RESULT_DIR/breakdown.txt && bin/nodetool NODETOOL_OPTION requestDist
+    register: command_result
+    ignore_errors: true
+
+
+
+- name: Stop Memory Monitor
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  gather_facts: false
+  tasks:
+    - name: Memory Monitor
+      shell: |
+        . /etc/profile && bash PATH_TO_SCRIPTS/status/killMonitor.sh
+      register: command_result
+      ignore_errors: true
+
+- name: Monitor after benchmark
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Monitor
+      shell: |
+        . /etc/profile && bash PATH_TO_SCRIPTS/status/statsDB_CPU_DISK_NET.sh {{ expName }} {{ workload }} {{ stage }} {{ resultDir }} {{ codeBase }} {{ diskDevice }} {{ networkDevice }} {{ scheme }}
+      vars:
+        expName: "Exp#1-Degraded-Run-Cassandra-DATAPATH"
+        workload: "workload_template"
+        stage: "After-normal-run"
+        resultDir: "PATH_TO_RESULT_DIR"
+        codeBase: "PATH_TO_SERVER"
+        diskDevice: "DISK_DEVICE"
+        networkDevice: "NETWORK_DEVICE"
+        scheme: "normal"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+
+# - name: kill page cache flusher
+#   hosts: cassandra_servers
+#   become: yes
+#   become_user: ymren
+#   tasks:
+#     - name: kill page cache flusher
+#       shell: |
+#         kill -9 $(ps aux | grep drop_caches| grep -v grep | awk 'NR == 1'  | awk {'print $2'})
+#       register: command_result
+#       ignore_errors: true
+
+- name: Backup Logs
+  hosts: cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+    - name: copy logs
+      shell: bash PATH_TO_SCRIPTS/run/copyLogs.sh {{ record_count }} {{ operation_count }} {{ threads }} {{ workload }} {{ expName }} {{ keyspace }} {{ resultDir }} {{ logDir }}
+      vars:
+        record_count: 10000000
+        operation_count: 10000000
+        threads: 64
+        workload: "workload_template"
+        expName: "Exp#1-Normal-Run-Cassandra-DATAPATH"
+        keyspace: "ycsb"
+        resultDir: "PATH_TO_RESULT_DIR"
+        logDir: "PATH_TO_LOG_DIR"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"

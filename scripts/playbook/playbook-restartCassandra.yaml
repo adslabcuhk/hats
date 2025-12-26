@@ -1,0 +1,61 @@
+---
+- name: Initialize the cluster
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Initialize the cluster
+      command: bash PATH_TO_SCRIPTS/run/restartCassandra.sh {{ configurationFile }} {{ projectBaseDir }} {{ memtableSize }} {{ motivation }} {{ rebuild }} {{ useDirectIO }} {{ branch }} {{ schedulingInitialDelay }} {{ schedulingInterval }} {{ statesUpdateInterval }} {{ readSensitivity }} {{ enableHats }} {{ throttleDataRate }} {{ enableFineSchedule }} {{ enableBackgroundSchedule }}
+      vars:
+        configurationFile: "PATH_TO_SERVER/conf/cassandra.yaml"
+        projectBaseDir: "PATH_TO_SERVER"
+        memtableSize: "128MiB"
+        motivation: "false"
+        rebuild: "false"
+        useDirectIO: "false"
+        branch: "main"
+        schedulingInitialDelay: 60
+        schedulingInterval: 10
+        statesUpdateInterval: 10
+        readSensitivity: 0.9
+        enableHats: "ENABLE_HATS"
+        throttleDataRate: THROTTLE_DATA_RATE
+        enableFineSchedule: "ENABLE_FINE_SCHEDULE"
+        enableBackgroundSchedule: "ENABLE_BACKGROUND_SCHEDULE"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+- name: Restart seed nodes
+  hosts: cassandra_seeds
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Restart seed nodes
+      shell: . /etc/profile && cd PATH_TO_SERVER && nohup bin/cassandra >logs/debug.log 2>&1 &
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: Wait until cold startup is done
+      pause:
+        seconds: 120
+
+- name: Restart data nodes
+  hosts: cassandra_data_nodes
+  become: yes
+  serial: 1
+  become_user: ymren
+  tasks:
+    - name: Restart data nodes
+      shell: . /etc/profile && cd PATH_TO_SERVER && nohup bin/cassandra >logs/debug.log 2>&1 &
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: Wait until cold startup is done
+      pause:
+        seconds: 60

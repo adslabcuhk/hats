@@ -1,0 +1,13 @@
+---
+- name: Trim SSD
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Trim SSD
+      shell: . /etc/profile && echo "SUDO_PASSWD" | sudo -S sh -c "fstrim -v /mnt/ssd"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"

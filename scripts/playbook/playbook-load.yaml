@@ -1,0 +1,166 @@
+---
+- name: Start Cassandra Seeds
+  hosts: cassandra_seeds
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Execute script start-server.sh
+    shell: |
+      . /etc/profile &&
+      export code_base="PATH_TO_SERVER" &&
+      export branch_name="BRANCH" &&
+      export rebuild="true" &&
+      export memtable_heap_space="128MiB" &&
+      export internode_max_message_size="32MiB" &&
+      export internode_application_send_queue_capacity="256MiB" &&
+      export internode_application_send_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_send_queue_reserve_global_capacity="2048MiB" &&
+      export internode_application_receive_queue_capacity="256MiB" &&
+      export internode_application_receive_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_receive_queue_reserve_global_capacity="2048MiB" &&
+      bash PATH_TO_SCRIPTS/run/start-server.sh
+
+    register: command_result
+    ignore_errors: True
+#
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+  - name: Wait until all nodes are ready
+    pause:
+      seconds: 120
+
+
+- name: Start Cassandra Data Nodes
+  hosts: cassandra_data_nodes
+  become: true
+  become_user: ymren
+  serial: 1
+  tasks:
+  - name: Execute script start-server.sh
+    shell: |
+      . /etc/profile &&
+      export code_base="PATH_TO_SERVER" &&
+      export branch_name="BRANCH" &&
+      export rebuild="true" &&
+      export memtable_heap_space="128MiB" &&
+      export internode_max_message_size="32MiB" &&
+      export internode_application_send_queue_capacity="256MiB" &&
+      export internode_application_send_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_send_queue_reserve_global_capacity="2048MiB" &&
+      export internode_application_receive_queue_capacity="256MiB" &&
+      export internode_application_receive_queue_reserve_endpoint_capacity="512MiB" &&
+      export internode_application_receive_queue_reserve_global_capacity="2048MiB" &&
+      bash PATH_TO_SCRIPTS/run/start-server.sh
+
+    register: command_result
+    ignore_errors: True
+#
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+  - name: Wait until all nodes are ready
+    pause:
+      seconds: 90
+
+- name: Setup log levels
+  hosts:  cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Setup log levels
+    shell: |
+      . /etc/profile && cd PATH_TO_SERVER && bin/nodetool NODETOOL_OPTION setlogginglevel org.apache.cassandra LOG_LEVEL && bin/nodetool NODETOOL_OPTION setlogginglevel ROOT LOG_LEVEL
+    register: command_result
+    ignore_errors: true
+
+
+- name: Prepare keyspace and tables for evaluation
+  hosts: cassandra_clients
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Execute script start-client.sh
+    shell: bash PATH_TO_SCRIPTS/run/start-client.sh {{ coordinator }} {{ sstable_size_in_mb }} {{ fanout_size }} {{ file_dir }} {{ replication_factor }} {{ mode }} {{ compaction_strategy }}
+    vars:
+      coordinator: "NODE_IP"
+      sstable_size_in_mb: 4
+      fanout_size: 10
+      file_dir: "PATH_TO_SERVER"
+      replication_factor: 3
+      mode: "mlsm"
+      compaction_strategy: "LCS"
+    register: command_result
+    ignore_errors: True
+
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+
+
+
+- name: Load data
+  hosts: cassandra_clients
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Execute script load.sh
+    shell: | 
+        . /etc/profile && 
+        export requestDistribution="uniform" &&
+        bash PATH_TO_SCRIPTS/run/load.sh {{ coordinator }} {{ record_count }} {{ key_length }} {{ filed_length }} {{ threads }} {{ file_dir }} {{ workload }} {{ expName }} {{replication_factor}} {{ mode }}
+    vars:
+      coordinator: "COORDINATORS"
+      record_count: 100000000
+      key_length: 24
+      filed_length: 1000
+      threads: 16
+      file_dir: "PATH_TO_CLIENT"
+      workload: "workloads/workload_template"
+      expName: "Exp#1"
+      replication_factor: 3
+      mode: "mlsm"
+    register: command_result
+    ignore_errors: True
+
+  - name: Fail the play if the previous command did not succeed
+    fail: msg="the command failed"
+    when: "'FAILED' in command_result.stderr"
+
+  - name: Wait until insertion is done
+    pause:
+      seconds: 5
+
+
+- name: Get write stall metrics
+  hosts:  cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+  - name: Get write stall metrics
+    shell: |
+      . /etc/profile && cd PATH_TO_SERVER && bin/nodetool NODETOOL_OPTION writestall
+    register: command_result
+    ignore_errors: true
+
+
+- name: Backup Logs
+  hosts: cassandra_servers
+  become: true
+  become_user: ymren
+  tasks:
+    - name: copy logs
+      shell: bash PATH_TO_SCRIPTS/run/copyLogs.sh {{ record_count }} {{ operation_count }} {{ threads }} {{ workload }} {{ expName }} {{ keyspace }} {{ resultDir }}
+      vars:
+        record_count: 10000000
+        operation_count: 10000000
+        threads: 64
+        workload: "workload_template"
+        expName: "Exp#1-Normal-Run-Cassandra-DATAPATH"
+        keyspace: "ycsb"
+        resultDir: "PATH_TO_RESULT_DIR"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"

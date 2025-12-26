@@ -1,0 +1,22 @@
+---
+- name: Load the dataset from backup
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Load the dataset from backup
+      shell: |
+            . /etc/profile &&
+            cd PATH_TO_SERVER &&
+            rm -rf data/ &&
+            cp -r PATH_TO_BACKUP/Scheme/DATAPATH/data data/
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+
+
+
+
+

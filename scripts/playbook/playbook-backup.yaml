@@ -1,0 +1,21 @@
+---
+- name: Backup data file for startup
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Copy files
+      command: bash PATH_TO_SCRIPTS/run/copyDB.sh {{ projectBaseDir }} {{ sourceFileDir }} {{ targetFileDir }} {{ configureFileDir }}
+      vars:
+        projectBaseDir: "PATH_TO_SERVER"
+        sourceFileDir: "PATH_TO_SERVER/data"
+        targetFileDir: "PATH_TO_BACKUP/Scheme/DATAPATH"
+        configureFileDir: "PATH_TO_SERVER/conf/cassandra.yaml"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: Wait until copy is done
+      pause:
+        seconds: 5

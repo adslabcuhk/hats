@@ -1,0 +1,255 @@
+# HATS
+
+
+## Introduction
+HATS is a distributed key-value store that provides a holistic and automatic task scheduling framework. This is the repo contains the source code for the HATS prototype, YCSB benchmark tool, and the scripts used in our USENIX FAST'26 paper: [Holistic and Automated Task Scheduling for Distributed LSM-tree-based Storage](https://www.usenix.org/conference/fast26/presentation/ren).
+
+- `clients/`: includes the implementation of the HATS client, which is based on the [DataStax Java Driver for Apache Cassandra, v3.0.0](https://github.com/apache/cassandra-java-driver/releases/tag/3.0.0) and the benchmark tool [YCSB-0.17.0](https://github.com/brianfrankcooper/YCSB/releases/download/0.17.0/ycsb-0.17.0.tar.gz).
+- `server/`: includes the implementation of the HATS server and the baselines, which are all based on [Apache Cassandra 5.0](https://github.com/apache/cassandra/releases/tag/cassandra-5.0-beta1). The Raft library is based on [sofa-jraft](https://github.com/sofastack/sofa-jraft).
+- `scripts/`: includes the scripts for running the experiments, which are implemented based on shell scripts and Ansible.
+
+
+
+## Artifact Evaluation Instructions
+
+
+For FAST'26 AE reviewers, please refer to the [Artifact Evaluation Instructions](./AE_INSTRUCTIONS.md) for details.
+
+
+## Prerequisites
+
+### Testbed
+
+As a distributed KV store, HATS requires a cluster of machines to run. We recommend using multiple machines for both server nodes and client nodes to fully evaluate the performance of HATS. For example, we a cluster of 12 machines, where 10 machines are used as storage nodes and 2 machines are used as client nodes in the paper.
+
+### Dependencies
+- For Java project build: openjdk-17-jdk, openjdk-17-jre, ant, ant-optional Maven.
+- For scripts: python3, ansible, python3-pip, cassandra-driver, bc, numpy, scipy.
+
+The packages above can be directly installed via `apt-get` and `pip` package managers:
+
+```shell 
+sudo apt-get install -y openjdk-17-jdk openjdk-17-jre ant ant-optional maven python3 ansible python3-pip bc
+pip install cassandra-driver numpy scipy
+```
+
+Note that the dependencies for both HATS and YCSB will be automatically installed via Maven during compilation.
+
+
+### Environment Setup
+
+The build procedure of both the HATS prototype and YCSB requires an internet connection to download the dependencies via Maven. In case the internet connection requires a proxy, we provide an example maven setting file `./scripts/conf/settings.xml`. Please modify the file according to your proxy settings and then put it into the local Maven directory, as shown below.
+
+```shell
+mkdir -p ~/.m2
+vim ./scripts/conf/settings.xml # Modify the proxy settings in the file.
+cp ./scripts/conf/settings.xml ~/.m2/
+```
+
+
+## Build 
+
+
+### Step 1: HATS's client
+
+First, we build the HATS's client:
+
+```shell
+# Build with java 17, maven 3.6+
+cd clients/
+mvn -pl cassandra -am clean package -U -Dcheckstyle.skip
+```
+
+
+### Step 2: HATS's server
+
+Then, we can build the HATS's server:
+
+```shell
+# Build with java 17
+# For those who want to test the baseline, please go to servers/mlsm, servers/c3, or servers/depart-5.0
+cd servers/hats 
+mkdir build lib
+ant realclean && ant
+```
+
+## Configuration
+
+### Cluster setup
+
+SSH key-free access is required among all nodes in the HATS cluster.
+
+**Step 1:** Generate the SSH key pair on each node.
+
+```shell 
+ssh-keygen -q -t rsa -b 2048 -N "" -f ~/.ssh/id_rsa
+```
+
+**Step 2:** Create an SSH configuration file. You can run the following command with the specific node IP, Port, and User to generate the configuration file. Note that you can run the command multiple times to add all the nodes to the configuration file.
+
+```shell
+# Replace xxx with the correct IP, Port, and User information, and replace ${i} to the correct node ID.
+cat <<EOT >> ~/.ssh/config
+Host node${i}
+    StrictHostKeyChecking no
+    HostName xxx.xxx.xxx.xxx
+    Port xx
+    User xxx
+EOT
+```
+
+**Step 3:** Copy the SSH public key to all the nodes in the cluster.
+
+```shell
+ssh-copy-id node${i}
+```
+
+### Configuring HATS
+
+The HATS prototype requires to configure the cluster information before running. We provide an example configuration file `server/hats/conf/cassandra.yaml`. Please modify the file according to your cluster settings and the instructions shown below (lines 11-34).
+
+```shell
+cluster_name: 'HATS Cluster'
+
+# HATS settings
+enable_hats: false # The knob to enable the HATS scheduling framework.
+concurrent_schedulers: 32 # The size of the thread pool for the HATS's scheduler.
+
+# Manual settings to achieve a balanced workload across different nodes.
+initial_token: -9223372036854775808 # The initial token of the current node.
+token_ranges: -9223372036854775808,-6148914691236517376,-3074457345618258944,0,3074457345618257920,6148914691236515840 # The initial tokens of all nodes in the cluster.
+# Current node settings
+listen_address: 192.168.10.21 # IP address of the current node.
+rpc_address: 192.168.10.21 # IP address of the current node.
+seed_provider:
+  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+      # HATS: Put all the server nodes' IPs here. Make sure these IPs are sorted from small to large. Example: "<ip1>,<ip2>,<ip3>"
+      - seeds: "192.168.10.21,192.168.10.22,192.168.10.23,192.168.10.25,192.168.10.26,192.168.10.28"
+```
+
+
+To simplify the configuration of `initial_token` and `token_ranges`. We provide a script `./scripts/genToken.sh` to generate the token ranges for all the nodes in the cluster with the given node number. 
+
+```shell
+cd ./scripts
+python3 genToken.py ${n} # Replace ${n} to the number of nodes in the cluster.
+# Sample output:
+[Node 1]
+initial_token: -9223372036854775808
+[Node 2]
+initial_token: -6148914691236517376
+[Node 3]
+initial_token: -3074457345618258944
+[Node 4]
+initial_token: 0
+[Node 5]
+initial_token: 3074457345618257920
+[Node 6]
+initial_token: 6148914691236515840
+```
+
+After getting the initial token for each node, please fill the generated number into the `initial_token` and `token_ranges` fields in the configuration file.
+
+
+
+
+## Running 
+
+To test the HATS prototype, we need to run the following steps:
+
+1. Run the HATS cluster.
+2. Run the YCSB benchmark.
+
+We describe the detailed steps below.
+
+
+
+### Run the HATS cluster
+
+After configuring the cluster information in the `cassandra.yaml` file on each of the server nodes, we can run the HATS cluster with the following command (on each server node):
+
+```shell
+cd server/hats
+rm -rf data logs metrics # Clean up the data, log and metrics directories.
+# Create the directories for data, logs, and metrics.
+mkdir -p data
+mkdir -p logs
+mkdir -p metrics
+
+# Run the cluster 
+nohup bin/cassandra >logs/debug.log 2>&1 &
+```
+
+```shell
+DEBUG [OptionalTasks:1] 2023-12-13 18:45:05,396 CassandraDaemon.java:404 - Completed submission of build tasks for any materialized views defined at startup
+DEBUG [ScheduledTasks:1] 2023-12-13 18:45:25,030 MigrationCoordinator.java:264 - Pulling unreceived schema versions...
+```
+
+It will take about 1~2 minutes to fully set up the cluster. You can check the cluster status via the following command:
+
+```shell
+cd server/hats
+bin/nodetool ring
+```
+
+Once the cluster is ready, you can see the information of all nodes in the cluster on each of the server nodes. Note that each node in the cluster should own the same percentage of the consistent hashing ring. For example:
+
+```shell
+Datacenter: datacenter1
+==========
+Address             Rack        Status State   Load            Owns                Token
+192.168.10.21       rack1       Up     Normal  75.76 KiB       33.33%              -9223372036854775808
+192.168.10.22       rack1       Up     Normal  97 KiB          33.33%              -6148914691236517376
+192.168.10.23       rack1       Up     Normal  70.53 KiB       33.33%              -3074457345618258944
+192.168.10.25       rack1       Up     Normal  93.88 KiB       33.33%              0
+192.168.10.26       rack1       Up     Normal  96.4 KiB        33.33%              3074457345618257920
+192.168.10.28       rack1       Up     Normal  75.75 KiB       33.33%              6148914691236515840
+```
+
+
+### Run YCSB benchmark
+
+After the HATS cluster is set up, we can run the YCSB benchmark tool on the client node to evaluate the performance of HATS. We show the steps as follows:
+
+**Step 1:** Create the keyspace and set the replication factor for the YCSB benchmark.
+
+```shell
+cd server/hats
+bin/cqlsh ${coordinator} -e "create keyspace ycsb WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3 };
+        USE ycsb;
+        create table usertable0 (y_id varchar primary key, field0 varchar);
+        ALTER TABLE usertable0 WITH compaction = { 'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb': $sstable_size, 'fanout_size': $fanout_size};
+        ALTER TABLE usertable1 WITH compaction = { 'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb': $sstable_size, 'fanout_size': $fanout_size};
+        ALTER TABLE usertable2 WITH compaction = { 'class': 'LeveledCompactionStrategy', 'sstable_size_in_mb': $sstable_size, 'fanout_size': $fanout_size};
+        consistency all;"
+# Parameters:
+# ${coordinator}: The IP address of any HATS server node.
+# ${sstable_size}: The maximum SSTable size in MiB. Default 160.
+# ${fanout_size}: The size ratio between adjacent levels. Default 10.
+```
+
+**Step 2:** Load data into the HATS cluster.
+
+```shell
+cd client
+bin/ycsb load cassandra-cql -p hosts=${NodesList} -p cassandra.keyspace=${keyspace} -p cassandra.tracing="false" -threads ${threads} -s -P workloads/${workload}
+# The parameters:
+# ${NodesList}: the list of server nodes in the cluster. E.g., 192.168.0.1,192.168.0.2,192.168.0.3
+# ${keyspace}: the keyspace name of the YCSB benchmark. E.g., ycsb for HATS.
+# ${threads}: the number of threads (number of simulated clients) of the YCSB benchmark. E.g., 1, 2, 4, 8, 16, 32, 64
+# ${workload}: the workload file of the YCSB benchmark. E.g., workloads/workloada, workloads/workloadb, workloads/workloadc
+```
+
+**Step 3:** Run benchmark with specific workloads.
+
+```shell
+cd scripts/ycsb
+bin/ycsb run cassandra-cql -p hosts=${NodesList} -p cassandra.readconsistencylevel=${consistency} -p cassandra.keyspace=${keyspace} -p cassandra.tracing="false" -threads $threads -s -P workloads/${workload}
+# The parameters:
+# ${NodesList}: the list of server nodes in the cluster. E.g., 192.168.0.1,192.168.0.2,192.168.0.3
+# ${consistency}: the read consistency level of the YCSB benchmark. E.g., ONE, TWO, ALL
+# ${keyspace}: the keyspace name of the YCSB benchmark. E.g., ycsb for HATS.
+# ${threads}: the number of threads (number of simulated clients) of the YCSB benchmark. E.g., 1, 2, 4, 8, 16, 32, 64
+# ${workload}: the workload file of the YCSB benchmark. E.g., workloads/workloada, workloads/workloadb, workloads/workloadc
+```

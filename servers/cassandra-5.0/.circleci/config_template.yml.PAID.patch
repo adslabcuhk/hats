@@ -1,0 +1,405 @@
+--- config_template.yml	2023-11-10 15:39:02.663105186 +0000
++++ config_template.yml.PAID	2023-11-10 15:39:24.839456426 +0000
+@@ -157,20 +157,20 @@
+ j11_par_executor: &j11_par_executor
+   executor:
+     name: java11-executor
+-    #exec_resource_class: xlarge
+-  parallelism: 4
++    exec_resource_class: medium
++  parallelism: 25
+ 
+ j11_small_par_executor: &j11_small_par_executor
+   executor:
+     name: java11-executor
+-    #exec_resource_class: xlarge
+-  parallelism: 1
++    exec_resource_class: medium
++  parallelism: 10
+ 
+ j11_small_parallel_executor: &j11_small_parallel_executor
+   executor:
+     name: java11-executor
+-    #exec_resource_class: xlarge
+-  parallelism: 1
++    exec_resource_class: medium
++  parallelism: 4
+ 
+ j11_small_executor: &j11_small_executor
+   executor:
+@@ -178,30 +178,41 @@
+     exec_resource_class: medium
+   parallelism: 1
+ 
++j11_large_par_executor: &j11_large_par_executor
++  executor:
++    name: java11-executor
++    exec_resource_class: large
++  parallelism: 50
++
++j11_very_large_par_executor: &j11_very_large_par_executor
++  executor:
++    name: java11-executor
++    exec_resource_class: large
++  parallelism: 100
++
+ j11_medium_par_executor: &j11_medium_par_executor
+   executor:
+     name: java11-executor
+-    #exec_resource_class: xlarge
+-  parallelism: 1
++    exec_resource_class: xlarge
++  parallelism: 4
+ 
+ j11_seq_executor: &j11_seq_executor
+   executor:
+     name: java11-executor
+-    #exec_resource_class: xlarge
+     exec_resource_class: medium
+   parallelism: 1 # sequential, single container tests: no parallelism benefits
+ 
+ j17_par_executor: &j17_par_executor
+   executor:
+     name: java17-executor
+-    #exec_resource_class: xlarge
+-  parallelism: 4
++    exec_resource_class: medium
++  parallelism: 25
+ 
+ j17_small_par_executor: &j17_small_par_executor
+   executor:
+     name: java17-executor
+-    #exec_resource_class: xlarge
+-  parallelism: 1
++    exec_resource_class: medium
++  parallelism: 10
+ 
+ j17_small_executor: &j17_small_executor
+   executor:
+@@ -212,44 +223,56 @@
+ j17_medium_par_executor: &j17_medium_par_executor
+   executor:
+     name: java17-executor
+-    #exec_resource_class: xlarge
+-  parallelism: 1
++    exec_resource_class: xlarge
++  parallelism: 4
++
++j17_large_par_executor: &j17_large_par_executor
++  executor:
++    name: java17-executor
++    exec_resource_class: large
++  parallelism: 50
+ 
+ j17_seq_executor: &j17_seq_executor
+   executor:
+     name: java17-executor
+-    #exec_resource_class: xlarge
++    exec_resource_class: medium
+   parallelism: 1 # sequential, single container tests: no parallelism benefits
+ 
+ j11_repeated_jvm_upgrade_dtest_executor: &j11_repeated_jvm_upgrade_dtest_executor
+   executor:
+     name: java11-executor
+-  parallelism: 4
++    exec_resource_class: medium
++  parallelism: 25
+ 
+ j11_repeated_utest_executor: &j11_repeated_utest_executor
+   executor:
+     name: java11-executor
+-  parallelism: 4
++    exec_resource_class: medium
++  parallelism: 25
+ 
+ j11_repeated_dtest_executor: &j11_repeated_dtest_executor
+   executor:
+     name: java11-executor
+-  parallelism: 4
++    exec_resource_class: large
++  parallelism: 25
+ 
+ j17_repeated_utest_executor: &j17_repeated_utest_executor
+   executor:
+     name: java17-executor
+-  parallelism: 4
++    exec_resource_class: medium
++  parallelism: 25
+ 
+ j17_repeated_dtest_executor: &j17_repeated_dtest_executor
+   executor:
+     name: java17-executor
+-  parallelism: 4
++    exec_resource_class: large
++  parallelism: 25
+ 
+ j11_repeated_upgrade_dtest_executor: &j11_repeated_upgrade_dtest_executor
+   executor:
+     name: java11-executor
+-  parallelism: 4
++    exec_resource_class: xlarge
++  parallelism: 25
+ 
+ j11_separate_jobs: &j11_separate_jobs
+   jobs:
+@@ -1986,7 +2009,7 @@
+           target: testclasslist-system-keyspace-directory
+ 
+   j11_dtests_vnode:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2000,7 +2023,7 @@
+           pytest_extra_args: '--use-vnodes --num-tokens=16 --skip-resource-intensive-tests'
+ 
+   j11_dtests_offheap:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2014,7 +2037,7 @@
+           pytest_extra_args: '--use-vnodes --num-tokens=16 --use-off-heap-memtables --skip-resource-intensive-tests'
+ 
+   j17_dtests_vnode:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+     - attach_workspace:
+         at: /home/cassandra
+@@ -2029,7 +2052,7 @@
+         pytest_extra_args: '--use-vnodes --num-tokens=16 --skip-resource-intensive-tests'
+ 
+   j17_dtests_offheap:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2044,7 +2067,7 @@
+           pytest_extra_args: '--use-vnodes --num-tokens=16 --use-off-heap-memtables --skip-resource-intensive-tests'
+ 
+   j11_dtests:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2058,7 +2081,7 @@
+           pytest_extra_args: '--skip-resource-intensive-tests'
+ 
+   j17_dtests:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+     - attach_workspace:
+         at: /home/cassandra
+@@ -2073,7 +2096,7 @@
+         pytest_extra_args: '--skip-resource-intensive-tests'
+ 
+   j11_upgrade_dtests:
+-    <<: *j11_par_executor
++    <<: *j11_very_large_par_executor
+     steps:
+     - attach_workspace:
+         at: /home/cassandra
+@@ -2087,7 +2110,7 @@
+         pytest_extra_args: '--execute-upgrade-tests-only --upgrade-target-version-only --upgrade-version-selection all'
+ 
+   j11_cqlsh_dtests_py3_vnode:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2102,7 +2125,7 @@
+           extra_env_args: 'CQLSH_PYTHON=/usr/bin/python3.7'
+ 
+   j11_cqlsh_dtests_py3_offheap:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2117,7 +2140,7 @@
+           extra_env_args: 'CQLSH_PYTHON=/usr/bin/python3.7'
+ 
+   j11_cqlsh_dtests_py38_vnode:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2135,7 +2158,7 @@
+           python_version: '3.8'
+ 
+   j11_cqlsh_dtests_py311_vnode:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2153,7 +2176,7 @@
+           python_version: '3.11'
+ 
+   j11_cqlsh_dtests_py38_offheap:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2171,7 +2194,7 @@
+           python_version: '3.8'
+ 
+   j11_cqlsh_dtests_py311_offheap:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2189,7 +2212,7 @@
+           python_version: '3.11'
+ 
+   j11_cqlsh_dtests_py3:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2204,7 +2227,7 @@
+           extra_env_args: 'CQLSH_PYTHON=/usr/bin/python3.7'
+ 
+   j11_cqlsh_dtests_py38:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2222,7 +2245,7 @@
+           python_version: '3.8'
+ 
+   j11_cqlsh_dtests_py311:
+-    <<: *j11_par_executor
++    <<: *j11_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2240,7 +2263,7 @@
+           python_version: '3.11'
+ 
+   j17_cqlsh_dtests_py3_vnode:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2255,7 +2278,7 @@
+           extra_env_args: 'CQLSH_PYTHON=/usr/bin/python3.7'
+ 
+   j17_cqlsh_dtests_py3_offheap:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2270,7 +2293,7 @@
+           extra_env_args: 'CQLSH_PYTHON=/usr/bin/python3.7'
+ 
+   j17_cqlsh_dtests_py38_vnode:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2288,7 +2311,7 @@
+           python_version: '3.8'
+ 
+   j17_cqlsh_dtests_py311_vnode:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2306,7 +2329,7 @@
+           python_version: '3.11'
+ 
+   j17_cqlsh_dtests_py38_offheap:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2324,7 +2347,7 @@
+           python_version: '3.8'
+ 
+   j17_cqlsh_dtests_py311_offheap:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2342,7 +2365,7 @@
+           python_version: '3.11'
+ 
+   j17_cqlsh_dtests_py3:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2357,7 +2380,7 @@
+           extra_env_args: 'CQLSH_PYTHON=/usr/bin/python3.7'
+ 
+   j17_cqlsh_dtests_py38:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2375,7 +2398,7 @@
+           python_version: '3.8'
+ 
+   j17_cqlsh_dtests_py311:
+-    <<: *j17_par_executor
++    <<: *j17_large_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2393,7 +2416,7 @@
+           python_version: '3.11'
+ 
+   j11_dtests_large_vnode:
+-    <<: *j11_par_executor
++    <<: *j11_medium_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2407,7 +2430,7 @@
+           pytest_extra_args: '--use-vnodes --num-tokens=16 --only-resource-intensive-tests --force-resource-intensive-tests'
+ 
+   j11_dtests_large:
+-    <<: *j11_par_executor
++    <<: *j11_medium_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2421,7 +2444,7 @@
+           pytest_extra_args: '--only-resource-intensive-tests --force-resource-intensive-tests'
+ 
+   j17_dtests_large_vnode:
+-    <<: *j17_par_executor
++    <<: *j17_medium_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra
+@@ -2435,7 +2458,7 @@
+           pytest_extra_args: '--use-vnodes --num-tokens=16 --only-resource-intensive-tests --force-resource-intensive-tests'
+ 
+   j17_dtests_large:
+-    <<: *j17_par_executor
++    <<: *j17_medium_par_executor
+     steps:
+       - attach_workspace:
+           at: /home/cassandra

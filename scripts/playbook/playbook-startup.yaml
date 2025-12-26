@@ -1,0 +1,71 @@
+---
+- name: Initialize the cluster
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Initialize the cluster
+      shell: |
+            . /etc/profile &&
+            export passWd="SUDO_PASSWD"
+            bash PATH_TO_SCRIPTS/run/restartNode.sh {{ configurationFile }} {{ sourceFileDir }} {{ projectBaseDir }} {{ memtableSize }} {{ motivation }} {{ rebuild }} {{useDirectIO}} {{ branch }} {{ schedulingInitialDelay }} {{ schedulingInterval }} {{ statesUpdateInterval }} {{ readSensitivity }} {{ enableHats }} {{ throttleDataRate }} {{ enableFineSchedule }} {{ enableBackgroundSchedule }}
+      vars:
+        configurationFile: "PATH_TO_SERVER/conf/cassandra.yaml"
+        sourceFileDir: "PATH_TO_BACKUP/Scheme/DATAPATH/data"
+        projectBaseDir: "PATH_TO_SERVER"
+        memtableSize: "128MiB"
+        motivation: "false"
+        rebuild: "false"
+        useDirectIO: "false"
+        branch: "main"
+        schedulingInitialDelay: 60
+        schedulingInterval: 10
+        statesUpdateInterval: 10
+        readSensitivity: 0.9
+        enableHats: "ENABLE_HATS"
+        throttleDataRate: THROTTLE_DATA_RATE
+        enableFineSchedule: "ENABLE_FINE_SCHEDULE"
+        enableBackgroundSchedule: "ENABLE_BACKGROUND_SCHEDULE"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+- name: Startup seeds with backup data
+  hosts: cassandra_seeds
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Startup with backup data
+      shell: . /etc/profile && cd PATH_TO_SERVER && nohup bin/cassandra >logs/debug.log 2>&1 &
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: Wait until cold startup is done
+      pause:
+        seconds: 120
+
+- name: Startup data nodes with backup data
+  hosts: cassandra_data_nodes
+  become: yes
+  serial: 1
+  become_user: ymren
+  tasks:
+    - name: Startup with backup data
+      shell: . /etc/profile && cd PATH_TO_SERVER && nohup bin/cassandra >logs/debug.log 2>&1 &
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: Wait until cold startup is done
+      pause:
+        seconds: 60
+
+
+
+
+
+

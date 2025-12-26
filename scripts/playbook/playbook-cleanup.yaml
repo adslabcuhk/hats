@@ -1,0 +1,13 @@
+---
+- name: Clean the datasets
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Clean the datasets
+      shell: . /etc/profile && cd PATH_TO_SERVER && rm -rf data
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"

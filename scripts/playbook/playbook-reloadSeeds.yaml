@@ -1,0 +1,13 @@
+---
+- name: Reload seeds
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Reload seeds
+      shell: . /etc/profile && cd PATH_TO_SERVER && bin/nodetool reloadseeds  
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"

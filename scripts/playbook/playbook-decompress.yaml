@@ -1,0 +1,17 @@
+---
+- name: Decompress dataset
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Decompress dataset
+      shell: . /etc/profile && cd TARGET_DIR && tar -xzf {{ inventory_hostname }}.tar.gz -C DECOMPRESS_DIR && rm -rf {{ inventory_hostname }}.tar.gz
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: cooling machines
+      pause:
+        seconds: 120
+

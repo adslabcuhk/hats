@@ -1,0 +1,21 @@
+---
+- name: Backup data file for startup
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Copy files
+      command: bash /mnt/ssd/hats/scripts/run/copyDB.sh {{ projectBaseDir }} {{ sourceFileDir }} {{ targetFileDir }} {{ configureFileDir }}
+      vars:
+        projectBaseDir: "/mnt/ssd/hats/servers/mlsm"
+        sourceFileDir: "/mnt/ssd/hats/servers/mlsm/data"
+        targetFileDir: "/home/ymren/backups/mlsm/LoadDB-kvNumber-100000000-KeySize-24-ValueSize-1000-RF-3-SSTableSize-160-CompactionStrategy-LCS"
+        configureFileDir: "/mnt/ssd/hats/servers/mlsm/conf/cassandra.yaml"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+    - name: Wait until copy is done
+      pause:
+        seconds: 5

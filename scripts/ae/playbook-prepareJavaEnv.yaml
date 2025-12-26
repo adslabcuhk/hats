@@ -1,0 +1,25 @@
+---
+- name: Prepare Java Environment
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Prepare Java Environment
+      shell: . /etc/profile && echo "ymren" | sudo -S sh -c "update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
+- name: Prepare Java Environment
+  hosts: cassandra_clients
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: Prepare Java Environment
+      shell: . /etc/profile && echo "ymren" | sudo -S sh -c "update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java"
+      register: command_result
+      ignore_errors: true
+    - name: Fail the play if the previous command did not succeed
+      fail: msg="the command failed"
+      when: "'FAILED' in command_result.stderr"
