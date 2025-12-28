@@ -1,7 +1,7 @@
 # Obtain the results for Exp#9 (Different read consistency levels)
 . /etc/profile
 # Workload Settings
-EXP_NAME="Exp9-consistency"
+EXP_NAME="exp9"
 PURE_READ_WORKLOADS=()
 MIXED_READ_WRITE_WORKLOADS=("workloada")
 REQUEST_DISTRIBUTIONS=("zipfian") # zipfian uniform
@@ -53,19 +53,23 @@ function exportEnv {
 }
 
 # time the experiments
-SECONDS=0
-for ROUND_NUMBER in $(seq 1 $ROUNDS); do
-    for WORKLOAD in "${MIXED_READ_WRITE_WORKLOADS[@]}"; do
-        for scheme in "${SCHEMES[@]}"; do
-            exportEnv "${scheme}"
+# SECONDS=0
+# for ROUND_NUMBER in $(seq 1 $ROUNDS); do
+#     for WORKLOAD in "${MIXED_READ_WRITE_WORKLOADS[@]}"; do
+#         for scheme in "${SCHEMES[@]}"; do
+#             exportEnv "${scheme}"
             
-            runMixedReadWriteExp "${EXP_NAME}" "${scheme}" "${WORKLOAD}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] MEMTABLE_SIZE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" FIELD_LENGTH[@] KEY_LENGTH[@] "${KEY_LENGTHMin}" "${KEY_LENGTHMax}" "${ROUND_NUMBER}" COMPACTION_LEVEL[@]  MOTIVATION[@] "${MEMORY_LIMIT}" USE_DIRECTIO[@] "${REBUILD_SERVER}" "${REBUILD_CLIENT}" "${LOG_LEVEL}" "${BRANCH}" "${PURPOSE}" "${SCHEDULING_INITIAL_DELAY}" SCHEDULING_INTERVAL[@] "${STATES_UPDATE_INTERVAL}" "${READ_SENSISTIVITY}" THROTLLE_DATA_RATE[@] "${JDK_VERSION}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@]
+#             runMixedReadWriteExp "${EXP_NAME}" "${scheme}" "${WORKLOAD}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] MEMTABLE_SIZE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" FIELD_LENGTH[@] KEY_LENGTH[@] "${KEY_LENGTHMin}" "${KEY_LENGTHMax}" "${ROUND_NUMBER}" COMPACTION_LEVEL[@]  MOTIVATION[@] "${MEMORY_LIMIT}" USE_DIRECTIO[@] "${REBUILD_SERVER}" "${REBUILD_CLIENT}" "${LOG_LEVEL}" "${BRANCH}" "${PURPOSE}" "${SCHEDULING_INITIAL_DELAY}" SCHEDULING_INTERVAL[@] "${STATES_UPDATE_INTERVAL}" "${READ_SENSISTIVITY}" THROTLLE_DATA_RATE[@] "${JDK_VERSION}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@]
 
-        done
-    done
-done
-echo "Run Exp#9 took $SECONDS seconds." >> "${ALL_RESULTS}"
+#         done
+#     done
+# done
+# echo "Run Exp#9 took $SECONDS seconds." >> "${ALL_RESULTS}"
+ALL_WORKLOADS=("${PURE_READ_WORKLOADS[@]}" "${MIXED_READ_WRITE_WORKLOADS[@]}")
+# sort ALL_WORKLOADS
+ALL_WORKLOADS=($(printf "%s\n" "${ALL_WORKLOADS[@]}" | sort -u))
 mkdir -p ~/Results
+echo "" > ~/Results/${EXP_NAME}_summary.txt
 {
     echo "##############################################################"
     echo "#     Exp#9 (Different read consistency levels)              #"
@@ -74,4 +78,4 @@ mkdir -p ~/Results
         exportEnv "${scheme}"
         analyze_consistency_results "${ROUNDS}" ALL_WORKLOADS[@] "${EXP_NAME}" "${scheme}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] SCHEDULING_INTERVAL[@] THROTLLE_DATA_RATE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@] FIELD_LENGTH[@]
     done
-} | tee "~/Results/${EXP_NAME}_summary.txt"
+} | tee ~/Results/${EXP_NAME}_summary.txt

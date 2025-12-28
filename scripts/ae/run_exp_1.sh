@@ -2,7 +2,7 @@
 #!/bin/bash
 . /etc/profile
 # Workload Settings
-EXP_NAME="Exp1-effectiveness"
+EXP_NAME="exp1"
 PURE_READ_WORKLOADS=("workloadc")
 MIXED_READ_WRITE_WORKLOADS=("workloada" "workloadb")
 REQUEST_DISTRIBUTIONS=("zipfian") # zipfian uniform
@@ -58,29 +58,29 @@ function exportEnv {
     source "${SCRIPT_DIR}/../common.sh"
 }
 
-SECONDS=0
-for ROUND_NUMBER in $(seq 1 $ROUNDS); do
-    for WORKLOAD in "${PURE_READ_WORKLOADS[@]}"; do
-        for scheme in "${SCHEMES[@]}"; do
-            exportEnv "${scheme}"
+# SECONDS=0
+# for ROUND_NUMBER in $(seq 1 $ROUNDS); do
+#     for WORKLOAD in "${PURE_READ_WORKLOADS[@]}"; do
+#         for scheme in "${SCHEMES[@]}"; do
+#             exportEnv "${scheme}"
             
-            runPureReadExp "${EXP_NAME}" "${scheme}" "${WORKLOAD}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] MEMTABLE_SIZE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" FIELD_LENGTH[@] KEY_LENGTH[@] "${KEY_LENGTHMin}" "${KEY_LENGTHMax}" "${ROUND_NUMBER}" COMPACTION_LEVEL[@]  MOTIVATION[@] "${MEMORY_LIMIT}" USE_DIRECTIO[@] "${REBUILD_SERVER}" "${REBUILD_CLIENT}" "${LOG_LEVEL}" "${BRANCH}" "${PURPOSE}" "${SCHEDULING_INITIAL_DELAY}" SCHEDULING_INTERVAL[@] "${STATES_UPDATE_INTERVAL}" "${READ_SENSISTIVITY}" THROTLLE_DATA_RATE[@] "${JDK_VERSION}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@]
+#             runPureReadExp "${EXP_NAME}" "${scheme}" "${WORKLOAD}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] MEMTABLE_SIZE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" FIELD_LENGTH[@] KEY_LENGTH[@] "${KEY_LENGTHMin}" "${KEY_LENGTHMax}" "${ROUND_NUMBER}" COMPACTION_LEVEL[@]  MOTIVATION[@] "${MEMORY_LIMIT}" USE_DIRECTIO[@] "${REBUILD_SERVER}" "${REBUILD_CLIENT}" "${LOG_LEVEL}" "${BRANCH}" "${PURPOSE}" "${SCHEDULING_INITIAL_DELAY}" SCHEDULING_INTERVAL[@] "${STATES_UPDATE_INTERVAL}" "${READ_SENSISTIVITY}" THROTLLE_DATA_RATE[@] "${JDK_VERSION}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@]
 
-        done
-    done
-done
+#         done
+#     done
+# done
 
-for ROUND_NUMBER in $(seq 1 $ROUNDS); do
-    for WORKLOAD in "${MIXED_READ_WRITE_WORKLOADS[@]}"; do
-        for scheme in "${SCHEMES[@]}"; do
-            exportEnv "${scheme}"
+# for ROUND_NUMBER in $(seq 1 $ROUNDS); do
+#     for WORKLOAD in "${MIXED_READ_WRITE_WORKLOADS[@]}"; do
+#         for scheme in "${SCHEMES[@]}"; do
+#             exportEnv "${scheme}"
             
-            runMixedReadWriteExp "${EXP_NAME}" "${scheme}" "${WORKLOAD}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] MEMTABLE_SIZE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" FIELD_LENGTH[@] KEY_LENGTH[@] "${KEY_LENGTHMin}" "${KEY_LENGTHMax}" "${ROUND_NUMBER}" COMPACTION_LEVEL[@]  MOTIVATION[@] "${MEMORY_LIMIT}" USE_DIRECTIO[@] "${REBUILD_SERVER}" "${REBUILD_CLIENT}" "${LOG_LEVEL}" "${BRANCH}" "${PURPOSE}" "${SCHEDULING_INITIAL_DELAY}" SCHEDULING_INTERVAL[@] "${STATES_UPDATE_INTERVAL}" "${READ_SENSISTIVITY}" THROTLLE_DATA_RATE[@] "${JDK_VERSION}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@]
+#             runMixedReadWriteExp "${EXP_NAME}" "${scheme}" "${WORKLOAD}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] MEMTABLE_SIZE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" FIELD_LENGTH[@] KEY_LENGTH[@] "${KEY_LENGTHMin}" "${KEY_LENGTHMax}" "${ROUND_NUMBER}" COMPACTION_LEVEL[@]  MOTIVATION[@] "${MEMORY_LIMIT}" USE_DIRECTIO[@] "${REBUILD_SERVER}" "${REBUILD_CLIENT}" "${LOG_LEVEL}" "${BRANCH}" "${PURPOSE}" "${SCHEDULING_INITIAL_DELAY}" SCHEDULING_INTERVAL[@] "${STATES_UPDATE_INTERVAL}" "${READ_SENSISTIVITY}" THROTLLE_DATA_RATE[@] "${JDK_VERSION}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@]
 
-        done
-    done
-done
-echo "Run Exp#1 took $SECONDS seconds." >> "${ALL_RESULTS}"
+#         done
+#     done
+# done
+# echo "Run Exp#1 took $SECONDS seconds." >> "${ALL_RESULTS}"
 
 # combine the pure read workloads and mixed read write workloads
 ALL_WORKLOADS=("${PURE_READ_WORKLOADS[@]}" "${MIXED_READ_WRITE_WORKLOADS[@]}")
@@ -89,6 +89,7 @@ ALL_WORKLOADS=($(printf "%s\n" "${ALL_WORKLOADS[@]}" | sort -u))
 
 
 mkdir -p ~/Results
+echo "" > ~/Results/${EXP_NAME}_summary.txt
 {
     echo "##############################################################"
     echo "#           Exp#1 (Effectiveness of each technique)          #"
@@ -97,4 +98,4 @@ mkdir -p ~/Results
         exportEnv "${scheme}"
         analyze_ycsb_results "${ROUNDS}" ALL_WORKLOADS[@] "${EXP_NAME}" "${scheme}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] SCHEDULING_INTERVAL[@] THROTLLE_DATA_RATE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@] FIELD_LENGTH[@]
     done
-} | tee "~/Results/${EXP_NAME}_summary.txt"
+} | tee ~/Results/${EXP_NAME}_summary.txt

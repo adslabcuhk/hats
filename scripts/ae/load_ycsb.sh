@@ -8,7 +8,7 @@ CLUSTER_NAMES=("1x")
 REPLICAS=(3)
 SSTABLE_SIZE_IN_MB=160
 KV_NUMBER=100000000
-FIELD_LENGTH=1000
+FIELD_LENGTH=(512 2048)
 KEY_LENGTH=24
 REBUILD_SERVER="false"
 WAIT_TIME=3600
@@ -20,7 +20,6 @@ BRANCH="main"
 
 
 function exportEnv {
-    
     local scheme=$1
     local cluster_name=$2
 
@@ -58,12 +57,15 @@ function main {
             
             for rf in "${REPLICAS[@]}"; do
                 for compaction_strategy in "${COMPACTION_STRATEGY[@]}"; do
-                    # Load data
-                    load $scheme 10 "${SSTABLE_SIZE_IN_MB}" 2048 "${rf}" "workload_template" ${KV_NUMBER} ${FIELD_LENGTH} ${KEY_LENGTH} ${compaction_strategy} ${LOG_LEVEL} ${BRANCH}
-                    # Wait for flush or compaction ready
-                    flush "LoadDB" $scheme $WAIT_TIME
-                    # Backup the DB and the logs
-                    backup "LoadDB" $scheme ${KV_NUMBER} ${KEY_LENGTH} ${FIELD_LENGTH} ${rf} "${SSTABLE_SIZE_IN_MB}" ${compaction_strategy}
+                    for value_size in "${FIELD_LENGTH[@]}"; do
+                        # Load data
+                        load $scheme 10 "${SSTABLE_SIZE_IN_MB}" 2048 "${rf}" "workload_template" ${KV_NUMBER} ${value_size} ${KEY_LENGTH} ${compaction_strategy} ${LOG_LEVEL} ${BRANCH}
+                        # Wait for flush or compaction ready
+                        flush "LoadDB" $scheme $WAIT_TIME
+                        # Backup the DB and the logs
+                        backup "LoadDB" $scheme ${KV_NUMBER} ${KEY_LENGTH} ${value_size} ${rf} "${SSTABLE_SIZE_IN_MB}" ${compaction_strategy}
+                        cleanup "$scheme"
+                    done
                 done
             done
         done

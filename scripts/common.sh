@@ -610,7 +610,7 @@ function run {
 
 
     # if [ "${workload}" == "motivation" ]; then
-    if [ "${targetScheme}" == "cassandra-5.0" ]; then
+    if [ "${targetScheme}" == "cassandra-5.0" ] || [ "${targetScheme}" == "depart-5.0" ]; then
         enableAutoCompactionCFs="usertable"
     else
         enableAutoCompactionCFs="usertable0 usertable1 usertable2"
@@ -645,7 +645,7 @@ function run {
     sed -i "s|ENABLE_HATS|${enableHats}|g" ${playbook}
     sed -i "s|PATH_TO_LOG_DIR|${PathToLogDir}|g" ${playbook}
     sed -i "s|CONSISTENCY|${readConsistencyLevel}|g" ${playbook}
-    sed -i "s|ENABLE_START_PROBE|${EnableStartProbe}|g" ${playbook}
+    sed -i "s|ENABLE_START_PROBE|${enableStartProbe}|g" ${playbook}
 
     if [ $targetScheme == "depart" ]|| [ $targetScheme == "cassandra-3.11.4" ]; then
         sed -i 's|NODETOOL_OPTION|-h ::FFFF:127.0.0.1|g' ${playbook}
@@ -1653,6 +1653,177 @@ function calculate_average {
     echo "scale=2; ${sum} / ${count}" | bc
 }
 
+function analyze_timescale_results {
+    local ROUNDS=${1}
+    local ALL_WORKLOADS=("${!2}")
+    local EXP_NAME=${3}
+    local TARGET_SCHEME=${4}
+    local REQUEST_DISTRIBUTIONS=("${!5}")
+    local REPLICAS=("${!6}")
+    local THREAD_NUMBER=("${!7}")
+    local SCHEDULING_INTERVAL=("${!8}")
+    local THROTLLE_DATA_RATE=("${!9}")
+    shift 9
+    local OPERATION_NUMBER=${1}
+    local KV_NUMBER=${2}
+    local SSTABLE_SIZE_IN_MB=${3}
+    local COMPACTION_STRATEGY=("${!4}")
+    local CONSISTENCY_LEVEL=("${!5}")
+    local FIELD_LENGTH=("${!6}")
+
+    # 创建汇总结果目录
+    local summary_dir="/home/${UserName}/Results-${CLUSTER_NAME}-${EXP_NAME}-Summary"
+    mkdir -p "${summary_dir}"
+    local summary_file="${summary_dir}/timescale_stability_${TARGET_SCHEME}.txt"
+    
+    # 添加表头
+    printf "%-15s %-15s %-15s %-20s\n" "Scheme" "Workload" "AverageReadLatency(us)" "Out-of-Range(%)" | tee "${summary_file}"
+    printf "%s\n" "--------------------------------------------------------------------" | tee -a "${summary_file}"
+
+    # 遍历所有workload
+    for workload in "${ALL_WORKLOADS[@]}"; do
+        
+        # 存储所有配置的结果
+        declare -a all_out_of_range_ratios=()
+        declare -a all_base_values=()
+        
+        # 遍历配置
+        for dist in "${REQUEST_DISTRIBUTIONS[@]}"; do
+            for rf in "${REPLICAS[@]}"; do
+                for threadsNum in "${THREAD_NUMBER[@]}"; do
+                    for schedulingInterval in "${SCHEDULING_INTERVAL[@]}"; do
+                        for throttleDataRate in "${THROTLLE_DATA_RATE[@]}"; do
+                            for consistency in "${CONSISTENCY_LEVEL[@]}"; do
+                                for fieldLength in "${FIELD_LENGTH[@]}"; do
+                                    for compaction_strategy in "${COMPACTION_STRATEGY[@]}"; do
+                                        
+                                        # 存储所有round的结果
+                                        declare -a round_out_of_range_ratios=()
+                                        declare -a round_base_values=()
+                                        
+                                        # 遍历所有rounds
+                                        for round in $(seq 1 ${ROUNDS}); do
+                                            # 获取结果目录
+                                            resultsDir=$(getResultsDir "${CLUSTER_NAME}" "${TARGET_SCHEME}" "${EXP_NAME}" "RunE" "${workload}" "${dist}" "all" "${threadsNum}" "${schedulingInterval}" "${round}" "false" "${throttleDataRate}" "${OPERATION_NUMBER}" "${KV_NUMBER}" "${SSTABLE_SIZE_IN_MB}" "${compaction_strategy}" "${consistency}" "${rf}" "${fieldLength}")
+                                            
+                                            # 查找所有节点目录
+                                            local node_dirs=(${resultsDir}/node*)
+                                            
+                                            if [ ${#node_dirs[@]} -gt 0 ]; then
+                                                # 找到coordinator read latency最大的节点
+                                                local max_latency=0
+                                                local selected_node_dir=""
+                                                
+                                                for node_dir in "${node_dirs[@]}"; do
+                                                    if [ -d "${node_dir}" ]; then
+                                                        breakdown_file="${node_dir}/metrics/breakdown.txt"
+                                                        
+                                                        if [ -f "${breakdown_file}" ]; then
+                                                            # 提取 Coordinator read latency: 208.66
+                                                            coord_latency=$(grep "CoordinatorReadTime:" "${breakdown_file}" | awk '{print $NF}')
+                                                            
+                                                            if [ -n "${coord_latency}" ]; then
+                                                                # 比较找出最大值
+                                                                if (( $(echo "${coord_latency} > ${max_latency}" | bc -l) )); then
+                                                                    max_latency="${coord_latency}"
+                                                                    selected_node_dir="${node_dir}"
+                                                                fi
+                                                            fi
+                                                        fi
+                                                    fi
+                                                done
+                                                
+                                                # 处理选中的节点
+                                                if [ -n "${selected_node_dir}" ]; then
+                                                    local smallscale_file="${selected_node_dir}/metrics/smallScale.txt"
+                                                    
+                                                    if [ -f "${smallscale_file}" ]; then
+                                                        # 提取所有非零的median值
+                                                        declare -a median_values=()
+                                                        
+                                                        while IFS= read -r line; do
+                                                            # 提取Median值: "Mean is: 1899.24, Median is: 1778.05"
+                                                            if [[ "$line" =~ Median\ is:\ ([0-9]+\.[0-9]+) ]]; then
+                                                                median="${BASH_REMATCH[1]}"
+                                                                
+                                                                # 跳过0值
+                                                                if (( $(echo "$median > 0" | bc -l) )); then
+                                                                    median_values+=("$median")
+                                                                fi
+                                                            fi
+                                                        done < "${smallscale_file}"
+                                                        
+                                                        # 计算base (所有非零median的平均值)
+                                                        if [ ${#median_values[@]} -gt 0 ]; then
+                                                            local sum=0
+                                                            for val in "${median_values[@]}"; do
+                                                                sum=$(echo "$sum + $val" | bc -l)
+                                                            done
+                                                            local base=$(echo "scale=2; $sum / ${#median_values[@]}" | bc -l)
+                                                            
+                                                            # 计算范围
+                                                            local lower_bound=$(echo "scale=2; $base * 0.5" | bc -l)
+                                                            local upper_bound=$(echo "scale=2; $base * 2.0" | bc -l)
+                                                            
+                                                            # 统计不在范围内的数量
+                                                            local out_of_range_count=0
+                                                            for val in "${median_values[@]}"; do
+                                                                if (( $(echo "$val < $lower_bound" | bc -l) )) || (( $(echo "$val > $upper_bound" | bc -l) )); then
+                                                                    ((out_of_range_count++))
+                                                                fi
+                                                            done
+                                                            
+                                                            # 计算百分比
+                                                            local out_of_range_ratio=$(echo "scale=2; $out_of_range_count * 100 / ${#median_values[@]}" | bc -l)
+                                                            
+                                                            round_base_values+=("$base")
+                                                            round_out_of_range_ratios+=("$out_of_range_ratio")
+                                                            
+                                                            # Debug信息 - 显示选中的节点和延迟
+                                                            # echo "Selected node: $(basename ${selected_node_dir}), Max latency: ${max_latency}us, Base: $base, Out-of-range: ${out_of_range_ratio}%"
+                                                        fi
+                                                        
+                                                        unset median_values
+                                                    fi
+                                                fi
+                                            fi
+                                        done
+                                        
+                                        # 计算当前配置的平均值
+                                        if [ ${#round_base_values[@]} -gt 0 ]; then
+                                            avg_base=$(calculate_average round_base_values[@])
+                                            avg_out_of_range=$(calculate_average round_out_of_range_ratios[@])
+                                            
+                                            all_base_values+=("$avg_base")
+                                            all_out_of_range_ratios+=("$avg_out_of_range")
+                                        fi
+                                        
+                                        unset round_base_values round_out_of_range_ratios
+                                    done
+                                done
+                            done
+                        done
+                    done
+                done
+            done
+        done
+        
+        # 计算workload的总体平均值
+        if [ ${#all_base_values[@]} -gt 0 ]; then
+            final_base=$(calculate_average all_base_values[@])
+            final_out_of_range=$(calculate_average all_out_of_range_ratios[@])
+            
+            # 输出到屏幕和文件
+            printf "%-15s %-15s %-15.2f %-20.2f\n" \
+                "${TARGET_SCHEME}" "${workload}" "${final_base}" "${final_out_of_range}" | tee -a "${summary_file}"
+        fi
+        
+        unset all_base_values all_out_of_range_ratios
+    done
+    
+    echo ""
+}
+
 # 通用的分组分析函数
 function analyze_results_by_dimension {
     local dimension_name=$1  # "Consistency" 或 "Distribution"
@@ -1713,6 +1884,13 @@ function analyze_results_by_dimension {
                                             current_dim_value="${consistency}"
                                         elif [ "${dimension_name}" == "Distribution" ]; then
                                             current_dim_value="${dist}"
+                                        elif [ "${dimension_name}" == "ValueSize" ]; then
+                                            current_dim_value="${fieldLength}"
+                                        elif [ "${dimension_name}" == "ClientNumber" ]; then
+                                            current_dim_value="${threadsNum}"
+                                        else
+                                            echo "Unsupported dimension: ${dimension_name}"
+                                            return 1
                                         fi
                                         
                                         # 存储当前维度值所有round的数据

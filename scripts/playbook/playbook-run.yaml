@@ -110,7 +110,7 @@
         . /etc/profile && cd PATH_TO_SERVER && bin/nodetool startprobe
       register: command_result
       ignore_errors: true
-      when: "ENABLE_START_PROBE" == "true"
+      when: ENABLE_START_PROBE | bool
 
 - name: Run benchmark and enable compaction
   hosts: cassandra_clients
@@ -289,16 +289,16 @@
       fail: msg="the command failed"
       when: "'FAILED' in command_result.stderr"
 
-# - name: kill page cache flusher
-#   hosts: cassandra_servers
-#   become: yes
-#   become_user: ymren
-#   tasks:
-#     - name: kill page cache flusher
-#       shell: |
-#         kill -9 $(ps aux | grep drop_caches| grep -v grep | awk 'NR == 1'  | awk {'print $2'})
-#       register: command_result
-#       ignore_errors: true
+- name: kill the cluster 
+  hosts: cassandra_servers
+  become: yes
+  become_user: ymren
+  tasks:
+    - name: kill the cluster
+      shell: |
+        kill -9 $(ps aux | grep CassandraDaemon | grep -v grep | awk 'NR == 1'  | awk {'print $2'})
+      register: command_result
+      ignore_errors: true
 
 - name: Backup Logs
   hosts: cassandra_servers

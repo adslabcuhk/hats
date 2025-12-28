@@ -27,6 +27,8 @@ function exportEnv {
     export CLUSTER_NAME="1x"
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
     source "${SCRIPT_DIR}/../common.sh"
+    Clients=("proj18")
+    ClientsIP=("192.168.50.18")
     initConf "false"
 }
 
@@ -51,6 +53,7 @@ function main {
                 flush "LoadDB" $scheme $WAIT_TIME
                 # Backup the DB and the logs
                 backup "LoadDB" $scheme ${KV_NUMBER} ${KEY_LENGTH} ${FIELD_LENGTH} ${rf} "${SSTABLE_SIZE_IN_MB}" ${compaction_strategy}
+                cleanup "$scheme"
             done
         done
     done

@@ -1,7 +1,7 @@
 # Obtain the results for Exp#8 (Scalability)
 . /etc/profile
 # Workload Settings
-EXP_NAME="Exp8-scalability"
+EXP_NAME="exp8"
 PURE_READ_WORKLOADS=("workloadc")
 MIXED_READ_WRITE_WORKLOADS=("workloada" "workloadb")
 REQUEST_DISTRIBUTIONS=("zifian") # zipfian uniform
@@ -79,6 +79,7 @@ echo "Run Exp#8 took $SECONDS seconds." >> "${ALL_RESULTS}"
 
 
 mkdir -p ~/Results
+echo "" > ~/Results/${EXP_NAME}_summary.txt
 {
     echo "##############################################################"
     echo "#                    Exp#8 (Scalability)                     #"
@@ -87,4 +88,4 @@ mkdir -p ~/Results
         exportEnv "${scheme}"
         analyze_ycsb_results "${ROUNDS}" ALL_WORKLOADS[@] "${EXP_NAME}" "${scheme}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] SCHEDULING_INTERVAL[@] THROTLLE_DATA_RATE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@] FIELD_LENGTH[@]
     done
-} | tee "~/Results/${EXP_NAME}_summary.txt"
+} | tee ~/Results/${EXP_NAME}_summary.txt

@@ -1,7 +1,7 @@
 # Obtain the results for Exp#12 (Impact of system saturation levels)
 . /etc/profile
 # Workload Settings
-EXP_NAME="Exp12-saturation"
+EXP_NAME="exp12"
 PURE_READ_WORKLOADS=()
 MIXED_READ_WRITE_WORKLOADS=("workloada")
 REQUEST_DISTRIBUTIONS=("zipfian") # zipfian uniform
@@ -65,6 +65,11 @@ for ROUND_NUMBER in $(seq 1 $ROUNDS); do
     done
 done
 echo "Run Exp#12 took $SECONDS seconds." >> "${ALL_RESULTS}"
+ALL_WORKLOADS=("${PURE_READ_WORKLOADS[@]}" "${MIXED_READ_WRITE_WORKLOADS[@]}")
+# sort ALL_WORKLOADS
+ALL_WORKLOADS=($(printf "%s\n" "${ALL_WORKLOADS[@]}" | sort -u))
+mkdir -p ~/Results
+echo "" > ~/Results/${EXP_NAME}_summary.txt
 {
     echo "##############################################################"
     echo "#     Exp#12 (Impact of system saturation levels)            #"
@@ -73,4 +78,4 @@ echo "Run Exp#12 took $SECONDS seconds." >> "${ALL_RESULTS}"
         exportEnv "${scheme}"
         analyze_ycsb_results "${ROUNDS}" ALL_WORKLOADS[@] "${EXP_NAME}" "${scheme}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] SCHEDULING_INTERVAL[@] THROTLLE_DATA_RATE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@] FIELD_LENGTH[@]
     done
-} | tee "~/Results/${EXP_NAME}_summary.txt"
+} | tee ~/Results/${EXP_NAME}_summary.txt

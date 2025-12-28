@@ -2,7 +2,7 @@
 #!/bin/bash
 . /etc/profile
 # Workload Settings
-EXP_NAME="Exp2-ycsb"
+EXP_NAME="exp2"
 PURE_READ_WORKLOADS=("workloadc")
 MIXED_READ_WRITE_WORKLOADS=("workloada" "workloadb" "workloadd")
 REQUEST_DISTRIBUTIONS=("zipfian") # zipfian uniform
@@ -86,7 +86,7 @@ ALL_WORKLOADS=($(printf "%s\n" "${ALL_WORKLOADS[@]}" | sort -u))
 
 
 mkdir -p ~/Results
-
+echo "" > ~/Results/${EXP_NAME}_summary.txt
 {
     ## Output the results for exp#2
     echo "##############################################################" 

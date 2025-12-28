@@ -60,77 +60,52 @@ Note on the experiment scripts:
 - **Where are the experiment results stored?** The experiment results will be stored in the `~/Results/` directory on the control node. Each experiment will be logged in a separate file named `exp#_summary.txt`, where `#` is the experiment number.
 
 
-### Quick verification (Exp#0: quick verification)
+### Quick verification
 
-#### Exp#0: Quick verification (1 human-minute + ~10 compute-hours / per-round)
+We suggest the reviewers run Exp#1 and Exp#2 first for a quick verification of our main results. Please see the instructions below.
 
-We provide this quick verification experiment to verify our main experimental results quickly.
-Specifically, we use 100M KV pairs to run the six YCSB core workloads (A-F), issue 50M operations per workload and run 1 round for each workload.
-This experiment will provide the throughput and latency results of HATS and the baselines across the six workloads (Exp#2), latency balance degree across the cluster (Exp#4), the performance breakdown of each system (Exp#6), and the resource usage of each system (Exp#7) in our paper.
 
-Your can run this quick verification experiment via the following command:
-
-```shell
-cd scripts/ae
-bash run_exp_0.sh
-```
-
-The results will be output in the order shown below:
-
-```shell
-##############################################################
-#         Exp#2 (YCSB synthetic workload performance)        #
-##############################################################
-
-Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
---------------------------------------------------------------------------------
-hats            workloada       35582.62             511.00          17961.00        87876.00
-hats            workloadb       63414.59             462.00          4478.00         47517.00
-hats            workloadc       85284.35             389.00          2524.00         34908.00
-
-Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
---------------------------------------------------------------------------------
-depart-5.0      workloada       23645.64             606.00          48847.00        107652.00
-depart-5.0      workloadb       34774.57             685.00          7869.00         87121.00
-depart-5.0      workloadc       36652.16             663.00          4829.00         226130.00
-...
-
-#################################################################
-#       Exp#4 (Latency balance degree across the cluster)       #
-#################################################################
-Scheme          Workload        Avg CoV
-------------------------------------------------
-hats            workloada       .26
-hats            workloadb       .28
-hats            workloadc       .10
-
-##############################################################
-#                Exp#6 (Performance breakdown)               #
-##############################################################
-Scheme       Workload     LocalRead(us)      Selection(us)      WriteMem(us)       WriteWAL(us)       Flush(us)          Compaction(us)     ReadCache(us)      ReadMem(us)        ReadSST(us)
-----------------------------------------------------------------------------------------------------------------------------
-hats         workloada    934                225                11                 9                  8                  47                 21                 9                  894
-hats         workloadc    88                 52                 0                  0                  0                  0                  1                  1                  69
-
-##############################################################
-#                    Exp#7 (Resource usage)                  #
-##############################################################
-Scheme       Workload     DiskIO(MiB)        NetworkIO(MiB)     CPU(s)             Memory(GiB)
-------------------------------------------------------------------------------------
-hats         workloada    38347              15130              1898               4.73
-hats         workloadb    12370              6105               1073               4.67
-hats         workloadc    10221              5043               790                4.62
-...
-```
 
 ### Microbenchmarks (Exp#1 in our paper)
 
-#### Exp#1: Effectiveness of different techniques (1 human-minute + ~4.2 compute-hours / per-round)
+#### Exp#1: Effectiveness of different techniques (1 human-minute + ~4 compute-hours / per-round)
 
 *Running:*
 ```shell
 cd scripts/ae
 bash run_exp_1.sh
+```
+
+*Example results*
+
+```shell
+cat ~/Results/exp1_summary.txt
+##############################################################
+#           Exp#1 (Effectiveness of each technique)          #
+##############################################################
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+hats            workloada       38207.95             501.00          15450.00        83004.00
+hats            workloadb       59371.56             482.00          4963.00         53964.00
+hats            workloadc       79745.57             384.00          2887.00         50954.00
+
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+fineschedule    workloada       26077.41             491.00          40894.00        91634.00
+fineschedule    workloadb       47318.10             464.00          9046.00         64198.00
+fineschedule    workloadc       50634.65             400.00          7043.00         68820.00
+
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+coarseschedule  workloada       25473.63             490.00          43326.00        96299.00
+coarseschedule  workloadb       38294.22             485.00          8289.00         75622.00
+coarseschedule  workloadc       46416.20             405.00          5355.00         76318.00
+
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+mlsm            workloada       21210.32             523.00          48098.00        127600.00
+mlsm            workloadb       35036.28             611.00          9807.00         78842.00
+mlsm            workloadc       35967.23             525.00          7913.00         239031.00
 ```
 
 ### Macrobenchmarks and system-level analysis (Exp#2-8 in our paper)
@@ -143,6 +118,98 @@ cd scripts/ae
 bash run_exp_2_4_6_7.sh
 ```
 
+*Example results*
+```shell
+cat ~/Results/exp2_summary.txt
+##############################################################
+#         Exp#2 (YCSB synthetic workload performance)        #
+##############################################################
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+hats            workloada       38420.87             502.00          15072.00        84288.00
+
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+depart-5.0      workloada       24756.83             588.00          45880.00        102951.00
+
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+c3              workloada       17823.78             586.00          57022.00        246852.00
+
+Scheme          Workload        Throughput(ops/s)    P50(us)         P99(us)         P999(us)
+--------------------------------------------------------------------------------
+mlsm            workloada       21681.89             505.00          49024.00        118999.00
+
+#################################################################
+#       Exp#4 (Latency balance degree across the cluster)       #
+#################################################################
+Scheme          Workload        Avg CoV
+------------------------------------------------
+hats            workloada       .28
+
+Scheme          Workload        Avg CoV
+------------------------------------------------
+depart-5.0      workloada       .33
+
+Scheme          Workload        Avg CoV
+------------------------------------------------
+c3              workloada       .19
+
+Scheme          Workload        Avg CoV
+------------------------------------------------
+mlsm            workloada       .16
+
+##############################################################
+#                Exp#6 (Performance breakdown)               #
+##############################################################
+Scheme       Workload     WAL(us)            WriteMemTable(us)  Flushing(us)       Compaction(us)     Selection(us)      ReadMemTable(us)   Caches(us)         Disk(us)
+----------------------------------------------------------------------------------------------------------------------------
+hats         workloada    8                  11                 7                  38                 183                9                  18                 802
+hats         workloadc    0                  0                  0                  0                  90                 1                  1                  96
+
+Scheme       Workload     WAL(us)            WriteMemTable(us)  Flushing(us)       Compaction(us)     Selection(us)      ReadMemTable(us)   Caches(us)         Disk(us)
+----------------------------------------------------------------------------------------------------------------------------
+depart-5.0   workloada    8                  12                 6                  56                 1013               10                 28                 1389
+depart-5.0   workloadc    0                  0                  0                  0                  113                1                  0                  321
+
+Scheme       Workload     WAL(us)            WriteMemTable(us)  Flushing(us)       Compaction(us)     Selection(us)      ReadMemTable(us)   Caches(us)         Disk(us)
+----------------------------------------------------------------------------------------------------------------------------
+c3           workloada    10                 11                 6                  191                2896               8                  58                 1476
+c3           workloadc    0                  0                  0                  0                  793                1                  5                  234
+
+Scheme       Workload     WAL(us)            WriteMemTable(us)  Flushing(us)       Compaction(us)     Selection(us)      ReadMemTable(us)   Caches(us)         Disk(us)
+----------------------------------------------------------------------------------------------------------------------------
+mlsm         workloada    17                 11                 7                  202                245                9                  59                 2706
+mlsm         workloadc    0                  0                  0                  0                  -598               1                  4                  274
+
+##############################################################
+#                    Exp#7 (Resource usage)                  #
+##############################################################
+Scheme       Workload     DiskIO(MiB)        NetworkIO(MiB)     CPU(s)             Memory(GiB)
+------------------------------------------------------------------------------------
+hats         workloada    36653              13051              1802               5.13
+hats         workloadb    15741              5774               1119               5.11
+hats         workloadc    12022              4848               845                5.02
+
+Scheme       Workload     DiskIO(MiB)        NetworkIO(MiB)     CPU(s)             Memory(GiB)
+------------------------------------------------------------------------------------
+depart-5.0   workloada    58936              13868              2300               5.31
+depart-5.0   workloadb    52715              7019               1415               5.06
+depart-5.0   workloadc    56424              6306               1248               4.80
+
+Scheme       Workload     DiskIO(MiB)        NetworkIO(MiB)     CPU(s)             Memory(GiB)
+------------------------------------------------------------------------------------
+c3           workloada    121785             16617              3048               5.21
+c3           workloadb    37925              12329              1893               5.17
+c3           workloadc    36151              12264              1684               5.05
+
+Scheme       Workload     DiskIO(MiB)        NetworkIO(MiB)     CPU(s)             Memory(GiB)
+------------------------------------------------------------------------------------
+mlsm         workloada    125387             13772              2746               5.54
+mlsm         workloadb    57381              5594               1406               5.42
+mlsm         workloadc    53932              6294               1162               5.25
+```
+
 #### Exp#3: Facebook workload (1 human-minute + ~4 compute-hours / per-round)
 *Running:*
 ```shell
@@ -150,14 +217,39 @@ cd scripts/ae
 bash run_exp_3.sh
 ```
 
-#### Exp#5: Latency distribution at the highest-latency node (1 human-minute + ~4 compute-hours / per-round)
+#### Exp#5: Latency distribution at the highest-latency node (1 human-minute + ~1.5 compute-hours / per-round)
 *Running:*
 ```shell
 cd scripts/ae
 bash run_exp_5.sh
 ``` 
 
+*Example results:*
+```shell
+cat ~/Results/exp5_summary.txt
+##############################################################
+#  Exp#5 (Latency distribution at the highest-latency node)  #
+##############################################################
+Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
+--------------------------------------------------------------------
+hats            workloadb       174.83          5.41
+
+Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
+--------------------------------------------------------------------
+depart-5.0      workloadb       280.35          6.79
+
+Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
+--------------------------------------------------------------------
+c3              workloadb       2376.43         83.66
+
+Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
+--------------------------------------------------------------------
+mlsm            workloadb       2485.36         97.33
+```
+
 #### Exp#8: Scalability (1 human-minute + ~4 compute-hours / per-round)
+**Note: This experiment requires a larger cluster setup. Although the provided cluster only contains 10 storage nodes, it is already heterogeneous. We recommend you skip this evaluation, or you may need to setup larger cluster by yourself.**
+
 *Running:*
 ```shell
 cd scripts/ae
@@ -172,6 +264,39 @@ bash run_exp_8.sh
 cd scripts/ae
 bash run_exp_9.sh
 ```
+
+*Example results*
+```shell
+cat ~/Results/exp9_summary.txt
+##############################################################
+#     Exp#9 (Different read consistency levels)              #
+##############################################################
+Scheme          Consistency     Throughput(ops/s)    P99(us)
+--------------------------------------------------------------------------------
+hats            ONE             32868.89             21658.00
+hats            TWO             18590.05             43783.00
+hats            ALL             14101.05             52704.00
+
+Scheme          Consistency     Throughput(ops/s)    P99(us)
+--------------------------------------------------------------------------------
+depart-5.0      ONE             24067.27             40897.00
+depart-5.0      TWO             16996.59             54829.00
+depart-5.0      ALL             13572.68             58021.00
+
+Scheme          Consistency     Throughput(ops/s)    P99(us)
+--------------------------------------------------------------------------------
+c3              ONE             18741.57             51497.00
+c3              TWO             12193.53             70523.00
+c3              ALL             9346.30              86431.00
+
+Scheme          Consistency     Throughput(ops/s)    P99(us)
+--------------------------------------------------------------------------------
+mlsm            ONE             21918.76             49556.00
+mlsm            TWO             15892.51             57044.00
+mlsm            ALL             11637.40             62409.00
+```
+
+
 
 #### Exp#10: Impact of key distribution (1 human-minute + ~4 compute-hours / per-round)
 *Running:*

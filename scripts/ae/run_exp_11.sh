@@ -1,7 +1,7 @@
 # Obtain the results for Exp#11 (Impact of value size)
 . /etc/profile
 # Workload Settings
-EXP_NAME="Exp11-value"
+EXP_NAME="exp11"
 MIXED_READ_WRITE_WORKLOADS=("workloada")
 REQUEST_DISTRIBUTIONS=("zipfian") # zipfian uniform
 OPERATION_NUMBER=10000000
@@ -64,6 +64,11 @@ for ROUND_NUMBER in $(seq 1 $ROUNDS); do
     done
 done
 echo "Run Exp#11 took $SECONDS seconds." >> "${ALL_RESULTS}"
+ALL_WORKLOADS=("${PURE_READ_WORKLOADS[@]}" "${MIXED_READ_WRITE_WORKLOADS[@]}")
+# sort ALL_WORKLOADS
+ALL_WORKLOADS=($(printf "%s\n" "${ALL_WORKLOADS[@]}" | sort -u))
+mkdir -p ~/Results
+echo "" > ~/Results/${EXP_NAME}_summary.txt
 {
     echo "##############################################################"
     echo "#     Exp#11 (Impact of value size)                          #"
@@ -72,4 +77,4 @@ echo "Run Exp#11 took $SECONDS seconds." >> "${ALL_RESULTS}"
         exportEnv "${scheme}"
         analyze_value_results "${ROUNDS}" ALL_WORKLOADS[@] "${EXP_NAME}" "${scheme}" REQUEST_DISTRIBUTIONS[@] REPLICAS[@] THREAD_NUMBER[@] SCHEDULING_INTERVAL[@] THROTLLE_DATA_RATE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" "${SSTABLE_SIZE_IN_MB}" COMPACTION_STRATEGY[@] CONSISTENCY_LEVEL[@] FIELD_LENGTH[@]
     done
-} | tee "~/Results/${EXP_NAME}_summary.txt"
+} | tee ~/Results/${EXP_NAME}_summary.txt

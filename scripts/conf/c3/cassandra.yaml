@@ -29,7 +29,7 @@ seed_provider:
     parameters:
       # seeds is actually a comma-delimited list of addresses.
       # Ex: "<ip1>,<ip2>,<ip3>"
-      - seeds: "192.168.10.22,192.168.10.23,192.168.10.25,192.168.10.27,192.168.10.28,192.168.10.29,192.168.10.30,192.168.10.31,192.168.10.32,192.168.10.49"
+      - seeds: "192.168.10.23,192.168.10.25,192.168.10.27,192.168.10.29,192.168.10.30,192.168.10.31,192.168.10.32,192.168.10.47,192.168.10.49,192.168.10.50"
       # If set to "true", SimpleSeedProvider will return all IP addresses for a DNS name,
       # based on the configured name service on the system. Defaults to "false".
       #  resolve_multiple_ip_addresses_per_dns_record: "false"
@@ -40,8 +40,8 @@ concurrent_counter_writes: 32
 concurrent_materialized_view_writes: 32
 # memtable_heap_space: 2048MiB
 memtable_allocation_type: heap_buffers
-listen_address: 192.168.10.49
-rpc_address: 192.168.10.49
+listen_address: 192.168.10.50
+rpc_address: 192.168.10.50
 storage_port: 7000
 ssl_storage_port: 7001
 raft_port: 8081
@@ -50,7 +50,7 @@ scheduling_interval: 1
 raft_rpc_timeout: 1000
 read_sensitive_factor: 0.9
 state_update_interval: 10
-all_hosts: "192.168.10.22,192.168.10.23,192.168.10.25,192.168.10.27,192.168.10.28,192.168.10.29,192.168.10.30,192.168.10.31,192.168.10.32,192.168.10.49"
+all_hosts: "192.168.10.23,192.168.10.25,192.168.10.27,192.168.10.29,192.168.10.30,192.168.10.31,192.168.10.32,192.168.10.47,192.168.10.49,192.168.10.50"
 initial_token: 7378697629483821056
 token_ranges: -9223372036854775808,-7378697629483820544,-5534023222112865280,-3689348814741909504,-1844674407370954752,0,1844674407370956800,3689348814741911552,5534023222112866304,7378697629483821056
 motivation: false
@@ -991,7 +991,7 @@ native_transport_allow_older_protocols: true
 # be set to 0.0.0.0. If left blank, this will be set to the value of
 # rpc_address. If rpc_address is set to 0.0.0.0, broadcast_rpc_address must
 # be set.
-# broadcast_rpc_address: 192.168.10.49
+# broadcast_rpc_address: 192.168.10.50
 
 # enable or disable keepalive on rpc/native connections
 rpc_keepalive: true
