@@ -77,6 +77,9 @@ for ROUND_NUMBER in $(seq 1 $ROUNDS); do
 done
 echo "Run Exp#8 took $SECONDS seconds." >> "${ALL_RESULTS}"
 
+ALL_WORKLOADS=("${PURE_READ_WORKLOADS[@]}" "${MIXED_READ_WRITE_WORKLOADS[@]}")
+# sort ALL_WORKLOADS
+ALL_WORKLOADS=($(printf "%s\n" "${ALL_WORKLOADS[@]}" | sort -u))
 
 mkdir -p ~/Results
 echo "" > ~/Results/${EXP_NAME}_summary.txt

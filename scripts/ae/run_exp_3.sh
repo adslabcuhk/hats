@@ -5,7 +5,7 @@ EXP_NAME="exp3"
 PURE_READ_WORKLOADS=()
 MIXED_READ_WRITE_WORKLOADS=("workload_mixgraph")
 REQUEST_DISTRIBUTIONS=("mixgraph") # zipfian uniform
-OPERATION_NUMBER=500000000
+OPERATION_NUMBER=50000000
 KV_NUMBER=50000000
 FIELD_LENGTH=(2000)
 KEY_LENGTH=(48)
@@ -52,7 +52,7 @@ function exportEnv {
     source "${SCRIPT_DIR}/../common.sh"
 }
 
-# time the experiments
+time the experiments
 SECONDS=0
 for ROUND_NUMBER in $(seq 1 $ROUNDS); do
     for WORKLOAD in "${MIXED_READ_WRITE_WORKLOADS[@]}"; do
@@ -66,6 +66,9 @@ for ROUND_NUMBER in $(seq 1 $ROUNDS); do
 done
 echo "Run Exp#3 took $SECONDS seconds." >> "${ALL_RESULTS}"
 
+ALL_WORKLOADS=("${PURE_READ_WORKLOADS[@]}" "${MIXED_READ_WRITE_WORKLOADS[@]}")
+# sort ALL_WORKLOADS
+ALL_WORKLOADS=($(printf "%s\n" "${ALL_WORKLOADS[@]}" | sort -u))
 mkdir -p ~/Results
 echo "" > ~/Results/${EXP_NAME}_summary.txt
 {
