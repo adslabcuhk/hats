@@ -74,6 +74,7 @@ function initConf {
     done
 
     # modify the hosts.ini
+    echo "Initialize the hosts.ini file"
     > ${SCRIPT_DIR}/playbook/hosts.ini
     echo "[cassandra_servers]" >> ${SCRIPT_DIR}/playbook/hosts.ini
     for node in "${Servers[@]}"; do
@@ -2271,7 +2272,7 @@ function runPureReadExp {
     CONSISTENCY_LEVEL=("${!32}")
 
 
-
+    initConf "false"
     for compaction_strategy in "${COMPACTION_STRATEGY[@]}"; do
         for rf in "${REPLICAS[@]}"; do
             loadDataset "${EXP_NAME}" $(getModel "$TARGET_SCHEME") "${KV_NUMBER}" "${KEY_LENGTH}" "${FIELD_LENGTH}" "${rf}" "${SSTABLE_SIZE_IN_MB}" "${compaction_strategy}"
@@ -2319,7 +2320,7 @@ function runMixedReadWriteExp {
     CONSISTENCY_LEVEL=("${!32}")
     
 
-
+    initConf "false"
     for compaction_strategy in "${COMPACTION_STRATEGY[@]}"; do
         for rf in "${REPLICAS[@]}"; do
             runExp "${EXP_NAME}" "$TARGET_SCHEME" $WORKLOAD REQUEST_DISTRIBUTIONS[@] ${rf} THREAD_NUMBER[@] MEMTABLE_SIZE[@] "${OPERATION_NUMBER}" "${KV_NUMBER}" FIELD_LENGTH[@] KEY_LENGTH[@] "${KEY_LENGTHMin}" "${KEY_LENGTHMax}" "${ROUND_NUMBER}" COMPACTION_LEVEL[@]  MOTIVATION[@] "${MEMORY_LIMIT}" USE_DIRECTIO[@] "${REBUILD_SERVER}" "${REBUILD_CLIENT}" "${LOG_LEVEL}" "${BRANCH}" "${PURPOSE}" "${SCHEDULING_INITIAL_DELAY}" SCHEDULING_INTERVAL[@] "${STATES_UPDATE_INTERVAL}" "${READ_SENSISTIVITY}" THROTLLE_DATA_RATE[@] "${JDK_VERSION}" "${SSTABLE_SIZE_IN_MB}" "${compaction_strategy}" CONSISTENCY_LEVEL[@]
