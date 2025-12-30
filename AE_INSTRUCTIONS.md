@@ -201,19 +201,19 @@ cat ~/Results/exp5_summary.txt
 ##############################################################
 Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
 --------------------------------------------------------------------
-hats            workloadb       174.83          5.41
+hats            workloadb       323.07          9.74
 
 Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
 --------------------------------------------------------------------
-depart-5.0      workloadb       280.35          6.79
+depart-5.0      workloadb       2514.22         78.31
 
 Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
 --------------------------------------------------------------------
-c3              workloadb       2376.43         83.66
+c3              workloadb       4111.95         86.81
 
 Scheme          Workload        AverageReadLatency(us) Out-of-Range(%)
 --------------------------------------------------------------------
-mlsm            workloadb       2485.36         97.33
+mlsm            workloadb       1020.91         85.56
 ```
 
 #### Exp#8: Scalability (1 human-minute + ~4 compute-hours / per-round)
