@@ -1744,7 +1744,7 @@ function analyze_timescale_results {
                                                         
                                                         while IFS= read -r line; do
                                                             # 提取Median值: "Mean is: 1899.24, Median is: 1778.05"
-                                                            if [[ "$line" =~ Median\ is:\ ([0-9]+\.[0-9]+) ]]; then
+                                                            if [[ "$line" =~ Mean\ is:\ ([0-9]+\.[0-9]+) ]]; then
                                                                 median="${BASH_REMATCH[1]}"
                                                                 
                                                                 # 跳过0值
