@@ -13,13 +13,22 @@ We claim that the results might differ from those in our paper due to various fa
 **For FAST'26 AE reviewers**, please use the provided testbeds to reproduce the evaluations directly. These testbeds come equipped with **pre-loaded datasets and pre-deployed software**, which will significantly reduce setup time and help avoid potential configuration issues. **Please contact us via HotCRP website for instructions on how to log into the control node of our testbed**.
 > Our provided testbed contains 1 control node, 2 client nodes, and 10 storage nodes connected via a 10Gbps switch. The testbed configuration is as follows: the client nodes match those in the original paper, while the control node has the same specifications as the client nodes. All storage nodes are equipped with quad-core Intel CPUs of different models (ranging from 5th to 7th generation); 9 nodes have 16GB RAM and 1 has 32GB RAM; 9 nodes use 128GB SATA SSDs and 1 node uses a 256GB NVMe SSD. All other settings remain the same as the original paper.
 
+Once you have access to the control node of the testbed, you may enter the provided tmux session named `fast26ae` to start the experiments. 
+**Important: Clean up your environment after evaluation using `rm -rf ~/hats ~/Results*` to provide a fresh testbed for the next reviewer.** Clone the repository with:
+```shell
+tmux at -t fast26ae
+cd ~
+git clone git@github.com:adslabcuhk/hats.git
+cd hats
+```
+
 ## Evaluations
 
 This section describes how to reproduce the evaluations in our paper. To simplify the reproduction process, we provide Ansible-based scripts to run all the experiments. The script will automatically run the experiments and generate the result logs. 
 > **Since running the complete set of experiments as described in the paper would take approximately 45 days, we have set the `ROUNDS` parameter to 1 for all experiments to significantly reduce the overall runtime.**
 
 Note on the experiment scripts:
-- **How to avoid interruptions?** These evaluation scripts require a long time to run. To avoid the interruption of the experiments, we suggest using `tmux` to run the scripts. You can create a new tmux session via `tmux new -s control`, run the script inside the tmux session, and then detach the session via `Ctrl+b d`. You can re-attach the session later via `tmux attach -t control`.
+- **How to avoid interruptions?** These evaluation scripts require a long time to run. To avoid the interruption of the experiments, we suggest using `tmux` to run the scripts. You can enter a `tmux` session via `tmux at -t fast26ae`, and detach it later via `Ctrl+b d`.
 - **Where are the experiment results stored?** The experiment results will be stored in the `~/Results/` directory on the control node. Each experiment will be logged in a separate file named `exp#_summary.txt`, where `#` is the experiment number.
 
 
