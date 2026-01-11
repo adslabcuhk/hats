@@ -2198,7 +2198,7 @@ function runExp {
                                                 #     requestDist="latest"
                                                 # fi
                                                 enableStartProbe="false"
-                                                if [ "${EXP_NAME}" == "Exp5-timescale" ]; then
+                                                if [ "${EXP_NAME}" == "exp5" ]; then
                                                     enableStartProbe="true"
                                                 fi
                                                 run ${TARGET_SCHEME} ${requestDist} ${WORKLOAD} ${threadsNum} ${KV_NUMBER} ${opsNum} ${keyLength} ${fieldLength} ${ENABLE_AUTO_COMPACTION} "${ENABLE_COMPACTION_CFS}" "${MEMORY_LIMIT}" "${LOG_LEVEL}" "${ENABLE_HATS}" "${consistency}" "${enableStartProbe}"
