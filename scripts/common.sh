@@ -1961,7 +1961,7 @@ function analyze_results_by_dimension {
                     # 输出到屏幕和文件
                     if [ "${dimension_name}" == "ClientNumber" ]; then
                         # double the thread number for saturation analysis
-                        Clients
+                        # Clients
                         dim_val=$((dim_val * ${#Clients[@]}))
                     fi
                     printf "%-15s %-15s %-20.2f %-20.2f\n" \
