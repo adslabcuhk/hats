@@ -252,3 +252,9 @@ bin/ycsb run cassandra-cql -p hosts=${NodesList} -p cassandra.readconsistencylev
 # ${threads}: the number of threads (number of simulated clients) of the YCSB benchmark. E.g., 1, 2, 4, 8, 16, 32, 64
 # ${workload}: the workload file of the YCSB benchmark. E.g., workloads/workloada, workloads/workloadb, workloads/workloadc
 ```
+
+
+## Follow-up
+
+For those who are interested in further exploring HATS, for example, modifying the HATS scheduling policies or adding new features, please refer to the commit history in  our development repository: [HATS Development Repository](https://github.com/renyuanming/hats/commits/main/).
+Each commit follows a specific format:`[sysname][purpose]`. The sysname identifies the system component (e.g., `script, client, hats, depart, c3, or mlsm`), while the purpose provides a detailed description of the change. Note that the project was previously named `"horse"`; `"HATS"` is its current designation.
